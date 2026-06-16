@@ -41,7 +41,10 @@ public class DocumentController {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @PostMapping("/upload")
-    public ResponseEntity<?> uploadDocument(@RequestParam("file")MultipartFile file) {
+    public ResponseEntity<?> uploadDocument(
+            @RequestParam("file")MultipartFile file,
+            @RequestParam(value = "callbackUrl", required = false) String callbackUrl
+    ) {
         ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
@@ -65,6 +68,7 @@ public class DocumentController {
                     .status(DocumentStatus.PENDING)
                     .uploadedAt(OffsetDateTime.now())
                     .client(currentClient)
+                    .callbackUrl(callbackUrl)
                     .build();
             Document saveDoc = documentRepository.save(doc);
 

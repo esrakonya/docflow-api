@@ -1,11 +1,14 @@
 package io.docflow.api.core.extraction.service;
 
 import io.docflow.api.core.document.dto.DocumentUploadedEvent;
+import io.docflow.api.core.document.dto.DocumentWebhookEvent;
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
 import io.docflow.api.core.document.entity.ProcessingAttempt;
 import io.docflow.api.core.document.repository.DocumentRepository;
 import io.docflow.api.core.document.repository.ProcessingAttemptRepository;
+import io.docflow.api.core.document.service.WebhookService;
+import io.docflow.api.core.extraction.dto.ExtractedInvoiceData;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.DltHandler;
@@ -29,6 +32,7 @@ public class DocumentProcessingWorker {
     private final DocumentExtractionService extractionService;
     private final DocumentRepository documentRepository;
     private final ProcessingAttemptRepository attemptRepository;
+    private final WebhookService webhookService;
 
     @RetryableTopic(
             attempts = "3",
@@ -42,11 +46,28 @@ public class DocumentProcessingWorker {
 
         try {
             byte[] fileBytes = Files.readAllBytes(Path.of(event.storagePath()));
-            extractionService.extractAndSave(event.documentId(), fileBytes, event.contentType());
 
-            logAttempt(event.documentId(), "SUCCESS", null);
+            ExtractedInvoiceData result = extractionService.extractAndSave(
+                    event.documentId(),
+                    fileBytes,
+                    event.contentType()
+            );
+
+            Document doc = documentRepository.findById(event.documentId())
+                            .orElseThrow(() -> new RuntimeException("Document not found"));
+
+            if (doc.getCallbackUrl() != null && !doc.getCallbackUrl().isBlank()) {
+                DocumentWebhookEvent webhookEvent = new DocumentWebhookEvent(
+                        doc.getId(),
+                        doc.getStatus(),
+                        result
+                );
+                webhookService.sendCallback(doc.getCallbackUrl(), webhookEvent);
+            }
+
+            log.info("İşlem ve bildirim başarıyla tamamlandı: {}", event.documentId());
         } catch (Exception e) {
-            logAttempt(event.documentId(), "FAILED", e.getMessage());
+            log.error("Belge işlenirken hata oluştu! ID: {}", event.documentId(), e);
             throw new RuntimeException(e);
         }
     }
