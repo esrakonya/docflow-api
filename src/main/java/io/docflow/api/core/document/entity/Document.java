@@ -1,5 +1,6 @@
 package io.docflow.api.core.document.entity;
 
+import io.docflow.api.core.client.entity.ApiClient;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,4 +24,8 @@ public class Document {
     private String callbackUrl;
     private OffsetDateTime uploadedAt;
     private OffsetDateTime processedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id")
+    private ApiClient client;
 }

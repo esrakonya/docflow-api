@@ -1,5 +1,6 @@
 package io.docflow.api.core.document.controller;
 
+import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.document.dto.DocumentUploadedEvent;
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
@@ -12,6 +13,7 @@ import okhttp3.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,6 +42,10 @@ public class DocumentController {
 
     @PostMapping("/upload")
     public ResponseEntity<?> uploadDocument(@RequestParam("file")MultipartFile file) {
+        ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("Dosya boş olamaz");
         }
@@ -58,6 +64,7 @@ public class DocumentController {
                     .storagePath(storagePath)
                     .status(DocumentStatus.PENDING)
                     .uploadedAt(OffsetDateTime.now())
+                    .client(currentClient)
                     .build();
             Document saveDoc = documentRepository.save(doc);
 
@@ -79,7 +86,11 @@ public class DocumentController {
 
     @GetMapping
     public ResponseEntity<List<Document>> getAllDocuments() {
-        return ResponseEntity.ok(documentRepository.findAll());
+        ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        return ResponseEntity.ok(documentRepository.findAllByClient(currentClient));
     }
 
     @GetMapping("/{id}")
