@@ -36,4 +36,8 @@ public class ExtractedData {
 
     @OneToMany(mappedBy = "extractedData", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DocumentLineItem> lineItems;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<String> validationWarnings;
 }

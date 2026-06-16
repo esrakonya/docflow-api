@@ -7,6 +7,8 @@ import io.docflow.api.core.extraction.dto.ExtractedInvoiceData;
 import io.docflow.api.core.extraction.entity.DocumentLineItem;
 import io.docflow.api.core.extraction.entity.ExtractedData;
 import io.docflow.api.core.extraction.repository.ExtractedDataRepository;
+import io.docflow.api.core.extraction.validator.ExtractionValidator;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.content.Media;
@@ -27,6 +29,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class DocumentExtractionService {
 
     private final ChatClient chatClient;
@@ -34,15 +37,18 @@ public class DocumentExtractionService {
     private final ExtractedDataRepository extractedDataRepository;
     private final String promptTemplateText;
     private final BeanOutputConverter<ExtractedInvoiceData> outputConverter;
+    private final ExtractionValidator extractionValidator;
 
     public DocumentExtractionService(ChatClient documentChatClient,
                                      DocumentRepository documentRepository,
-                                     ExtractedDataRepository extractedDataRepository) {
+                                     ExtractedDataRepository extractedDataRepository,
+                                     ExtractionValidator extractionValidator) {
         this.chatClient = documentChatClient;
         this.documentRepository = documentRepository;
         this.extractedDataRepository = extractedDataRepository;
         this.promptTemplateText = loadPromptTemplate("classpath:prompts/invoice-extraction.st");
         this.outputConverter = new BeanOutputConverter<>(ExtractedInvoiceData.class);
+        this.extractionValidator = extractionValidator;
     }
 
     @Transactional
@@ -73,14 +79,18 @@ public class DocumentExtractionService {
     }
 
     private void saveToDatabase(Document doc, ExtractedInvoiceData dto, String rawJson) {
+        ExtractionValidator.ValidationResult validation = extractionValidator.validate(dto);
+
         ExtractedData entity = ExtractedData.builder()
                 .document(doc)
                 .vendorName(dto.vendorName())
                 .invoiceNumber(dto.invoiceNumber())
+                .invoiceDate(dto.invoiceDate())
                 .totalAmount(dto.totalAmount())
                 .currency(dto.currency())
                 .overallConfidence(dto.confidence())
                 .rawLlmResponse(rawJson)
+                .validationWarnings(validation.warnings())
                 .build();
 
         List<DocumentLineItem> lineItems =dto.lineItems().stream()
@@ -94,10 +104,17 @@ public class DocumentExtractionService {
                 .toList();
 
         entity.setLineItems(lineItems);
-        extractedDataRepository.save(entity);
 
-        doc.setStatus(DocumentStatus.PROCESSED);
+        if (validation.isValid()) {
+            doc.setStatus(DocumentStatus.PROCESSED);
+            log.info("Belge başarıyla doğrulandı: {}", doc.getId());
+        } else {
+            doc.setStatus(DocumentStatus.NEEDS_REVIEW);
+            log.warn("Belge doğrulamadan geçemedi! Uyarılar: {}", validation.warnings());
+        }
+
         doc.setProcessedAt(OffsetDateTime.now());
+        extractedDataRepository.save(entity);
         documentRepository.save(doc);
     }
 
