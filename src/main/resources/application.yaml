@@ -48,6 +48,12 @@ spring:
       properties:
         spring.json.trusted.packages: "io.docflow.api.*"
 
+  springdoc:
+    swagger-ui:
+      path: /swagger-ui.html
+    api-docs:
+      path: /api-docs
+
 docflow:
    ai:
      provider: anthropic

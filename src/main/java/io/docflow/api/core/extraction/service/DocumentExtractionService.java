@@ -81,6 +81,9 @@ public class DocumentExtractionService {
     private void saveToDatabase(Document doc, ExtractedInvoiceData dto, String rawJson) {
         ExtractionValidator.ValidationResult validation = extractionValidator.validate(dto);
 
+        extractedDataRepository.findByDocumentId(doc.getId())
+                .ifPresent(oldData -> extractedDataRepository.delete(oldData));
+
         ExtractedData entity = ExtractedData.builder()
                 .document(doc)
                 .vendorName(dto.vendorName())

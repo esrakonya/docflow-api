@@ -1,6 +1,7 @@
 package io.docflow.api.core.document.controller;
 
 import io.docflow.api.core.client.entity.ApiClient;
+import io.docflow.api.core.client.service.UsageService;
 import io.docflow.api.core.document.dto.DocumentUploadedEvent;
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
@@ -39,6 +40,7 @@ public class DocumentController {
     private final DocumentRepository documentRepository;
     private final StorageService storageService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final UsageService usageService;
 
     @PostMapping("/upload")
     public ResponseEntity<?> uploadDocument(
@@ -48,6 +50,11 @@ public class DocumentController {
         ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
+
+        if (!usageService.checkAndIncrement(currentClient)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Aylık kotanız dolmuştur. Lütfen planınızı yükseltin.");
+        }
 
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("Dosya boş olamaz");
