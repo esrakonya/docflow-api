@@ -3,6 +3,7 @@ package io.docflow.api.core.extraction.service;
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
 import io.docflow.api.core.document.repository.DocumentRepository;
+import io.docflow.api.core.document.service.DocumentInternalService;
 import io.docflow.api.core.extraction.dto.ExtractedInvoiceData;
 import io.docflow.api.core.extraction.entity.DocumentLineItem;
 import io.docflow.api.core.extraction.entity.ExtractedData;
@@ -33,18 +34,18 @@ import java.util.UUID;
 public class DocumentExtractionService {
 
     private final ChatClient chatClient;
-    private final DocumentRepository documentRepository;
+    private final DocumentInternalService documentInternalService;
     private final ExtractedDataRepository extractedDataRepository;
     private final String promptTemplateText;
     private final BeanOutputConverter<ExtractedInvoiceData> outputConverter;
     private final ExtractionValidator extractionValidator;
 
     public DocumentExtractionService(ChatClient documentChatClient,
-                                     DocumentRepository documentRepository,
+                                     DocumentInternalService documentInternalService,
                                      ExtractedDataRepository extractedDataRepository,
                                      ExtractionValidator extractionValidator) {
         this.chatClient = documentChatClient;
-        this.documentRepository = documentRepository;
+        this.documentInternalService = documentInternalService;
         this.extractedDataRepository = extractedDataRepository;
         this.promptTemplateText = loadPromptTemplate("classpath:prompts/invoice-extraction.st");
         this.outputConverter = new BeanOutputConverter<>(ExtractedInvoiceData.class);
@@ -53,13 +54,11 @@ public class DocumentExtractionService {
 
     @Transactional
     public ExtractedInvoiceData extractAndSave(UUID documentId, byte[] fileBytes, String mimeType) {
-        Document doc = documentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
-        doc.setStatus(DocumentStatus.PROCESSING);
-        documentRepository.save(doc);
+        documentInternalService.updateStatus(documentId, DocumentStatus.PROCESSING);
 
         Media media = new Media(MimeType.valueOf(mimeType), new ByteArrayResource(fileBytes));
         String formatInstructions = outputConverter.getFormat();
+
         PromptTemplate promptTemplate = PromptTemplate.builder()
                 .template(promptTemplateText)
                 .variables(Map.of("format", formatInstructions))
@@ -73,22 +72,23 @@ public class DocumentExtractionService {
 
         ExtractedInvoiceData dto = outputConverter.convert(rawResponse);
 
-        saveToDatabase(doc, dto, rawResponse);
+        saveToDatabase(documentId, dto, rawResponse);
 
         return dto;
     }
 
-    private void saveToDatabase(Document doc, ExtractedInvoiceData dto, String rawJson) {
+    private void saveToDatabase(UUID documentId, ExtractedInvoiceData dto, String rawJson) {
+        Document doc = documentInternalService.getById(documentId);
+
         ExtractionValidator.ValidationResult validation = extractionValidator.validate(dto);
 
-        extractedDataRepository.findByDocumentId(doc.getId())
-                .ifPresent(oldData -> extractedDataRepository.delete(oldData));
+        extractedDataRepository.findByDocumentId(documentId)
+                .ifPresent(extractedDataRepository::delete);
 
         ExtractedData entity = ExtractedData.builder()
                 .document(doc)
                 .vendorName(dto.vendorName())
                 .invoiceNumber(dto.invoiceNumber())
-                .invoiceDate(dto.invoiceDate())
                 .totalAmount(dto.totalAmount())
                 .currency(dto.currency())
                 .overallConfidence(dto.confidence())
@@ -96,7 +96,7 @@ public class DocumentExtractionService {
                 .validationWarnings(validation.warnings())
                 .build();
 
-        List<DocumentLineItem> lineItems =dto.lineItems().stream()
+        List<DocumentLineItem> lineItems = dto.lineItems().stream()
                 .map(item -> DocumentLineItem.builder()
                         .extractedData(entity)
                         .description(item.description())
@@ -107,19 +107,18 @@ public class DocumentExtractionService {
                 .toList();
 
         entity.setLineItems(lineItems);
+        extractedDataRepository.save(entity);
 
         if (validation.isValid()) {
-            doc.setStatus(DocumentStatus.PROCESSED);
-            log.info("Belge başarıyla doğrulandı: {}", doc.getId());
+            documentInternalService.markAsProcessed(documentId, OffsetDateTime.now());
+            log.info("Belge başarıyla işlendi: {}", documentId);
         } else {
-            doc.setStatus(DocumentStatus.NEEDS_REVIEW);
-            log.warn("Belge doğrulamadan geçemedi! Uyarılar: {}", validation.warnings());
+            documentInternalService.markAsNeedReview(documentId);
+            log.warn("Belge inceleme gerektiriyor (NEEDS_REVIEW): {}", documentId);
         }
 
-        doc.setProcessedAt(OffsetDateTime.now());
-        extractedDataRepository.save(entity);
-        documentRepository.save(doc);
     }
+
 
     private String loadPromptTemplate(String location) {
         Resource resource = new PathMatchingResourcePatternResolver().getResource(location);

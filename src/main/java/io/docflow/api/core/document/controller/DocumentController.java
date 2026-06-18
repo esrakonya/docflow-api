@@ -51,49 +51,37 @@ public class DocumentController {
                 .getAuthentication()
                 .getPrincipal();
 
-        if (!usageService.checkAndIncrement(currentClient)) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body("Aylık kotanız dolmuştur. Lütfen planınızı yükseltin.");
-        }
+        usageService.checkAndIncrement(currentClient);
 
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body("Dosya boş olamaz");
-        }
+        validateFileType(file);
 
-        String contentType = file.getContentType();
-        if (contentType == null || !SUPPORTED_MIME_TYPES.contains(contentType)) {
-            return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                    .body("Geçersiz dosya tipi");
-        }
+        String storagePath = storageService.store(file);
 
-        try {
-            String storagePath = storageService.store(file);
+        Document doc = Document.builder()
+                .originalFilename(file.getOriginalFilename())
+                .storagePath(storagePath)
+                .status(DocumentStatus.PENDING)
+                .uploadedAt(OffsetDateTime.now())
+                .client(currentClient)
+                .callbackUrl(callbackUrl)
+                .build();
 
-            Document doc = Document.builder()
-                    .originalFilename(file.getOriginalFilename())
-                    .storagePath(storagePath)
-                    .status(DocumentStatus.PENDING)
-                    .uploadedAt(OffsetDateTime.now())
-                    .client(currentClient)
-                    .callbackUrl(callbackUrl)
-                    .build();
-            Document saveDoc = documentRepository.save(doc);
+        Document savedDoc = documentRepository.save(doc);
 
-            DocumentUploadedEvent event = new DocumentUploadedEvent(
-                    saveDoc.getId(),
-                    storagePath,
-                    file.getContentType()
-            );
-            kafkaTemplate.send("document-uploaded", event);
+        kafkaTemplate.send("document-uploaded", new DocumentUploadedEvent(
+                savedDoc.getId(), storagePath, file.getContentType()));
 
-            return ResponseEntity.accepted().body(new DocumentResponse(saveDoc.getId(), "PENDING"));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("İşlem sırasında bir hata oluştu: " + e.getMessage());
-        }
+        return ResponseEntity.accepted().body(new DocumentResponse(savedDoc.getId(), "PENDING"));
     }
 
     public record DocumentResponse(UUID id, String status) {}
+
+    public void validateFileType(MultipartFile file) {
+        if (file.isEmpty()) throw new RuntimeException("Dosya boş olamaz");
+        if (!SUPPORTED_MIME_TYPES.contains(file.getContentType())) {
+            throw new RuntimeException("Desteklenmeyen dosya formatı!");
+        }
+    }
 
     @GetMapping
     public ResponseEntity<List<Document>> getAllDocuments() {

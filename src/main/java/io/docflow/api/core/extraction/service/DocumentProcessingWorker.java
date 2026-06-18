@@ -7,6 +7,7 @@ import io.docflow.api.core.document.entity.DocumentStatus;
 import io.docflow.api.core.document.entity.ProcessingAttempt;
 import io.docflow.api.core.document.repository.DocumentRepository;
 import io.docflow.api.core.document.repository.ProcessingAttemptRepository;
+import io.docflow.api.core.document.service.DocumentInternalService;
 import io.docflow.api.core.document.service.WebhookService;
 import io.docflow.api.core.extraction.dto.ExtractedInvoiceData;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.retrytopic.DltStrategy;
 import org.springframework.kafka.retrytopic.TopicSuffixingStrategy;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +32,7 @@ import java.util.UUID;
 public class DocumentProcessingWorker {
 
     private final DocumentExtractionService extractionService;
-    private final DocumentRepository documentRepository;
+    private final DocumentInternalService documentInternalService;
     private final ProcessingAttemptRepository attemptRepository;
     private final WebhookService webhookService;
 
@@ -41,7 +43,10 @@ public class DocumentProcessingWorker {
             topicSuffixingStrategy = TopicSuffixingStrategy.SUFFIX_WITH_INDEX_VALUE
     )
     @KafkaListener(topics = "document-uploaded", groupId = "docflow-group")
-    public void processDocument(DocumentUploadedEvent event) {
+    public void processDocument(
+            DocumentUploadedEvent event,
+            @Header(name = "kafka_deliveryAttempt", defaultValue = "1") int attempt  //Kafka retry count
+    ) {
         log.info("Kafka'dan yeni iş alındı: Document ID {}", event.documentId());
 
         try {
@@ -53,21 +58,21 @@ public class DocumentProcessingWorker {
                     event.contentType()
             );
 
-            Document doc = documentRepository.findById(event.documentId())
-                            .orElseThrow(() -> new RuntimeException("Document not found"));
+            logAttempt(event.documentId(), "SUCCESS", null, attempt);
 
+            Document doc = documentInternalService.getById(event.documentId());
             if (doc.getCallbackUrl() != null && !doc.getCallbackUrl().isBlank()) {
-                DocumentWebhookEvent webhookEvent = new DocumentWebhookEvent(
-                        doc.getId(),
-                        doc.getStatus(),
-                        result
-                );
-                webhookService.sendCallback(doc.getCallbackUrl(), webhookEvent);
+                webhookService.sendCallback(doc.getCallbackUrl(),
+                        new DocumentWebhookEvent(doc.getId(), doc.getStatus(), result));
             }
 
             log.info("İşlem ve bildirim başarıyla tamamlandı: {}", event.documentId());
+
         } catch (Exception e) {
-            log.error("Belge işlenirken hata oluştu! ID: {}", event.documentId(), e);
+            log.error("Belge işlenirken hata oluştu! ID: {} - Hata: {}", event.documentId(), attempt);
+
+            logAttempt(event.documentId(), "FAILED", e.getMessage(), attempt);
+
             throw new RuntimeException(e);
         }
     }
@@ -77,22 +82,22 @@ public class DocumentProcessingWorker {
     public void handleDlt(DocumentUploadedEvent event) {
         log.error("TÜM DENEMELER BAŞARISIZ! Belge 'FAILED' statüsüne çekiliyor. ID: {}", event.documentId());
 
-        Document doc = documentRepository.findById(event.documentId()).orElseThrow();
-        doc.setStatus(DocumentStatus.FAILED);
-        documentRepository.save(doc);
+        documentInternalService.updateStatus(event.documentId(), DocumentStatus.FAILED);
     }
 
-    private void logAttempt(UUID docId, String status, String error) {
-        Document doc = documentRepository.findById(docId).orElse(null);
-        if (doc == null) return;
-
-        ProcessingAttempt attempt = ProcessingAttempt.builder()
-                .document(doc)
-                .status(status)
-                .errorMessage(error)
-                .attemptedAt(OffsetDateTime.now())
-                .attemptNumber(0)
-                .build();
-        attemptRepository.save(attempt);
+    private void logAttempt(UUID docId, String status, String error, int attemptNumber) {
+        try {
+            Document doc = documentInternalService.getById(docId);
+            ProcessingAttempt attempt = ProcessingAttempt.builder()
+                    .document(doc)
+                    .status(status)
+                    .errorMessage(error)
+                    .attemptedAt(OffsetDateTime.now())
+                    .attemptNumber(attemptNumber)
+                    .build();
+            attemptRepository.save(attempt);
+        } catch (Exception e) {
+            log.error("Deneme kaydı veritabanına yazılamadı!", e);
+        }
     }
 }
