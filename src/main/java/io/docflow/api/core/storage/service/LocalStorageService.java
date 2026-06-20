@@ -21,6 +21,12 @@ public class LocalStorageService implements StorageService {
 
     @Override
     public String store(MultipartFile file) {
+        String originalName =file.getOriginalFilename();
+        if (originalName != null && originalName.contains("..")) {
+            log.error("Güvenlik Riski: Dosya isminde '..' tespit edildi! -> {}", originalName);
+            throw new RuntimeException("Geçersiz dosya ismi! Path traversal girişimi engellendi.");
+        }
+
         try {
             Path root = Paths.get(uploadDir);
             if (!Files.exists(root)) {
@@ -28,14 +34,14 @@ public class LocalStorageService implements StorageService {
                 log.info("Yükleme klasörü oluşturuldu: {}", root.toAbsolutePath());
             }
 
-            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+            String fileName = UUID.randomUUID() + "_" + originalName;
             Path destination = root.resolve(fileName);
 
             Files.copy(file.getInputStream(), destination);
 
             log.info("Dosya başarıyla kaydedildi: {}", destination);
-
             return destination.toString();
+
         } catch (IOException e) {
             log.error("Dosya depolama hatası!", e);
             throw new RuntimeException("Dosya kaydedilemedi: " + e.getMessage());

@@ -48,6 +48,11 @@ spring:
       properties:
         spring.json.trusted.packages: "io.docflow.api.*"
 
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -67,3 +72,16 @@ management:
 docflow:
    ai:
      provider: anthropic
+---
+
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://docflow-db:5432/docflow_db
+  kafka:
+    bootstrap-servers: docflow-kafka:9092
+  data:
+    redis:
+      host: docflow-redis
