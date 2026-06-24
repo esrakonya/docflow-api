@@ -9,6 +9,7 @@ import io.docflow.api.core.extraction.entity.DocumentLineItem;
 import io.docflow.api.core.extraction.entity.ExtractedData;
 import io.docflow.api.core.extraction.repository.ExtractedDataRepository;
 import io.docflow.api.core.extraction.validator.ExtractionValidator;
+import io.docflow.api.core.storage.service.StorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.PromptTemplate;
@@ -39,17 +40,20 @@ public class DocumentExtractionService {
     private final String promptTemplateText;
     private final BeanOutputConverter<ExtractedInvoiceData> outputConverter;
     private final ExtractionValidator extractionValidator;
+    private final StorageService storageService;
 
     public DocumentExtractionService(ChatClient documentChatClient,
                                      DocumentInternalService documentInternalService,
                                      ExtractedDataRepository extractedDataRepository,
-                                     ExtractionValidator extractionValidator) {
+                                     ExtractionValidator extractionValidator,
+                                     StorageService storageService) {
         this.chatClient = documentChatClient;
         this.documentInternalService = documentInternalService;
         this.extractedDataRepository = extractedDataRepository;
         this.promptTemplateText = loadPromptTemplate("classpath:prompts/invoice-extraction.st");
         this.outputConverter = new BeanOutputConverter<>(ExtractedInvoiceData.class);
         this.extractionValidator = extractionValidator;
+        this.storageService = storageService;
     }
 
     @Transactional
@@ -83,12 +87,17 @@ public class DocumentExtractionService {
         ExtractionValidator.ValidationResult validation = extractionValidator.validate(dto);
 
         extractedDataRepository.findByDocumentId(documentId)
-                .ifPresent(extractedDataRepository::delete);
+                .ifPresent(oldData -> {
+                    log.info("Eski çıkarım verisi temizleniyor: {}", documentId);
+                    extractedDataRepository.delete(oldData);
+                });
 
         ExtractedData entity = ExtractedData.builder()
                 .document(doc)
                 .vendorName(dto.vendorName())
                 .invoiceNumber(dto.invoiceNumber())
+                .invoiceDate(dto.invoiceDate())
+                .dueDate(dto.dueDate())
                 .totalAmount(dto.totalAmount())
                 .currency(dto.currency())
                 .overallConfidence(dto.confidence())

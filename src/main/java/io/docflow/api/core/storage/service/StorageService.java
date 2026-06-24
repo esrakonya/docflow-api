@@ -10,4 +10,6 @@ public interface StorageService {
     **/
     String store(MultipartFile file);
     byte[] fetch(String key);
+
+    void delete(String key);
 }

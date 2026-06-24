@@ -56,4 +56,21 @@ public class LocalStorageService implements StorageService {
             throw new RuntimeException("Dosya yerel diskten okunamadı!");
         }
     }
+
+    @Override
+    public void delete(String key) {
+        try {
+            Path filePath = Paths.get(uploadDir).resolve(key);
+
+            boolean deleted = Files.deleteIfExists(filePath);
+
+            if (deleted) {
+                log.info("Dosya yerel diskten başarıyla silindi: {}", key);
+            } else {
+                log.warn("Silinmek istenen dosya yerel diskte bulunamadı: {}", key);
+            }
+        } catch (IOException e) {
+            log.error("Dosya yerel diskten silinirken hata oluştu: {}", key, e);
+        }
+    }
 }

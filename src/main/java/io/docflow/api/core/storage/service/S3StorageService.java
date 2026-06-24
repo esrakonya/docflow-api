@@ -1,12 +1,14 @@
 package io.docflow.api.core.storage.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
@@ -15,6 +17,7 @@ import java.util.UUID;
 @Service
 @Primary
 @RequiredArgsConstructor
+@Slf4j
 public class S3StorageService implements StorageService {
 
     private final S3Client s3Client;
@@ -54,6 +57,19 @@ public class S3StorageService implements StorageService {
                     .build()).asByteArray();
         } catch (Exception e) {
             throw new RuntimeException("Dosya MinIO'dan çekilemedi!", e);
+        }
+    }
+
+    @Override
+    public void delete(String key) {
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build());
+            log.info("Dosya MinIO'dan başarıyla silindi: {}", key);
+        } catch (Exception e) {
+            log.error("MinIO dosya silme hatası: {}", key, e);
         }
     }
 }

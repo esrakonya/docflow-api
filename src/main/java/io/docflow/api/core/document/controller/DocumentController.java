@@ -116,6 +116,11 @@ public class DocumentController {
 
     public void validateFileType(MultipartFile file) {
         if (file.isEmpty()) throw new RuntimeException("Dosya boş olamaz");
+
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new RuntimeException("Dosya boyutu çok büyük! Maksimum 10MB yükleyebilirsiniz.");
+        }
+
         if (!SUPPORTED_MIME_TYPES.contains(file.getContentType())) {
             throw new RuntimeException("Desteklenmeyen dosya formatı!");
         }
