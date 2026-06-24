@@ -9,4 +9,5 @@ public interface StorageService {
      * @return Kaydedilen dosyanın fiziksel yolu (path)
     **/
     String store(MultipartFile file);
+    byte[] fetch(String key);
 }

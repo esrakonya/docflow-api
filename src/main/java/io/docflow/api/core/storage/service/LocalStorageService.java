@@ -47,4 +47,13 @@ public class LocalStorageService implements StorageService {
             throw new RuntimeException("Dosya kaydedilemedi: " + e.getMessage());
         }
     }
+
+    @Override
+    public byte[] fetch(String key) {
+        try {
+            return Files.readAllBytes(Paths.get(uploadDir).resolve(key));
+        } catch (IOException e) {
+            throw new RuntimeException("Dosya yerel diskten okunamadı!");
+        }
+    }
 }

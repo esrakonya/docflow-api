@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -72,6 +73,43 @@ public class DocumentController {
                 savedDoc.getId(), storagePath, file.getContentType()));
 
         return ResponseEntity.accepted().body(new DocumentResponse(savedDoc.getId(), "PENDING"));
+    }
+
+    @PostMapping(value = "/upload/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<DocumentResponse>> uploadBatch(
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(value = "callbackUrl", required = false) String callbackUrl
+    ) {
+        ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        List<DocumentResponse> responses = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            rateLimitingService.checkRateLimit(currentClient.getApiKeyHash());
+            usageService.checkAndIncrement(currentClient);
+
+            String storagePath = storageService.store(file);
+
+            Document doc = Document.builder()
+                    .originalFilename(file.getOriginalFilename())
+                    .storagePath(storagePath)
+                    .status(DocumentStatus.PENDING)
+                    .uploadedAt(OffsetDateTime.now())
+                    .client(currentClient)
+                    .callbackUrl(callbackUrl)
+                    .build();
+            Document savedDoc = documentRepository.save(doc);
+
+            kafkaTemplate.send("document-uploaded", new DocumentUploadedEvent(
+                    savedDoc.getId(), storagePath, file.getContentType()
+            ));
+
+            responses.add(new DocumentResponse(savedDoc.getId(), "PENDING"));
+        }
+
+        return ResponseEntity.accepted().body(responses);
     }
 
     public record DocumentResponse(UUID id, String status) {}

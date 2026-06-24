@@ -10,6 +10,7 @@ import io.docflow.api.core.document.repository.ProcessingAttemptRepository;
 import io.docflow.api.core.document.service.DocumentInternalService;
 import io.docflow.api.core.document.service.WebhookService;
 import io.docflow.api.core.extraction.dto.ExtractedInvoiceData;
+import io.docflow.api.core.storage.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.DltHandler;
@@ -35,6 +36,7 @@ public class DocumentProcessingWorker {
     private final DocumentInternalService documentInternalService;
     private final ProcessingAttemptRepository attemptRepository;
     private final WebhookService webhookService;
+    private final StorageService storageService;
 
     @RetryableTopic(
             attempts = "3",
@@ -50,7 +52,7 @@ public class DocumentProcessingWorker {
         log.info("Kafka'dan yeni iş alındı: Document ID {}", event.documentId());
 
         try {
-            byte[] fileBytes = Files.readAllBytes(Path.of(event.storagePath()));
+            byte[] fileBytes = storageService.fetch(event.storagePath());
 
             ExtractedInvoiceData result = extractionService.extractAndSave(
                     event.documentId(),
