@@ -21,7 +21,8 @@
                     <p><strong>Satıcı:</strong> <span th:text="${data.vendorName}"></span></p>
                     <p><strong>Fatura No:</strong> <span th:text="${data.invoiceNumber}"></span></p>
                     <p><strong>Tarih:</strong> <span th:text="${data.invoiceDate}"></span></p>
-                    <h4 class="text-primary mt-3" th:text="${data.totalAmount + ' ' + data.currency}">0.00 TRY</h4>
+                    <p><strong>Vade Tarihi:</strong><span th:text="${data.dueDate}"></span></p>
+                    <p><strong>Vergi (KDV):</strong><span th:text="${data.taxAmount + ' ' + data.currency}"></span></p>
                     <div class="alert alert-info mt-2">
                         Güven Skoru: <strong th:text="${#numbers.formatDecimal(data.overallConfidence * 100, 1, 1) + '%'}"></strong>
                     </div>

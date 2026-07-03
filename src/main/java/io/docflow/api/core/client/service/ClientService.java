@@ -3,6 +3,7 @@ package io.docflow.api.core.client.service;
 import io.docflow.api.core.client.dto.ClientRegistrationResponse;
 import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.client.repository.ApiClientRepository;
+import io.docflow.api.core.document.mapper.DocumentMapper;
 import io.docflow.api.infrastructure.util.HashUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import java.util.UUID;
 public class ClientService {
 
     private final ApiClientRepository apiClientRepository;
+    private final DocumentMapper documentMapper;
 
     public ClientRegistrationResponse registerNewClient(String companyName) {
         String rawKey = "invox_live_" + UUID.randomUUID().toString().replace("-", "");
@@ -32,6 +34,6 @@ public class ClientService {
 
         ApiClient saved = apiClientRepository.save(client);
 
-        return new ClientRegistrationResponse(saved.getId(), saved.getCompanyName(), rawKey);
+        return documentMapper.toRegistrationResponse(saved, rawKey);
     }
 }

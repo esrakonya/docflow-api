@@ -63,9 +63,15 @@ public class DocumentProcessingWorker {
             logAttempt(event.documentId(), "SUCCESS", null, attempt);
 
             Document doc = documentInternalService.getById(event.documentId());
+            String secret = doc.getClient().getWebhookSecret();
+
             if (doc.getCallbackUrl() != null && !doc.getCallbackUrl().isBlank()) {
-                webhookService.sendCallback(doc.getCallbackUrl(),
-                        new DocumentWebhookEvent(doc.getId(), doc.getStatus(), result));
+                DocumentWebhookEvent webhookEvent = new DocumentWebhookEvent(
+                        doc.getId(),
+                        doc.getStatus(),
+                        result
+                );
+                webhookService.sendCallback(doc.getCallbackUrl(), secret,webhookEvent);
             }
 
             log.info("İşlem ve bildirim başarıyla tamamlandı: {}", event.documentId());

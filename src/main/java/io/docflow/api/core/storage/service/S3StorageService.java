@@ -3,6 +3,7 @@ package io.docflow.api.core.storage.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,9 +16,9 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.util.UUID;
 
 @Service
-@Primary
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "storage.type", havingValue = "minio")
 public class S3StorageService implements StorageService {
 
     private final S3Client s3Client;

@@ -1,5 +1,7 @@
 package io.docflow.api.core.client.service;
 
+import io.docflow.api.config.AppProperties;
+import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.infrastructure.exception.RateLimitExceededException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -12,18 +14,24 @@ import java.time.Duration;
 public class RateLimitingService {
 
     private final StringRedisTemplate redisTemplate;
+    private final AppProperties appProperties;
 
-    public void checkRateLimit(String apiKeyHash) {
-        String key = "rate_limit:" + apiKeyHash;
+    public void checkRateLimit(ApiClient client) {
+        String key = "ratelimit:" + client.getApiKeyHash();
+        Long currentCount = redisTemplate.opsForValue().increment(key);
 
-        Long currentRequestCount = redisTemplate.opsForValue().increment(key);
-
-        if (currentRequestCount != null && currentRequestCount == 1) {
+        if (currentCount != null && currentCount == 1) {
             redisTemplate.expire(key, Duration.ofMinutes(1));
         }
 
-        if (currentRequestCount != null && currentRequestCount > 5) {
-            throw new RateLimitExceededException("Dakikalık istek limitinizi aştınız. Lütfen bekleyin.");
+        int limit = "pro".equalsIgnoreCase(client.getPlanTier())
+                ? appProperties.getSecurity().getProTierLimit()
+                : appProperties.getSecurity().getFreeTierLimit();
+
+        if (currentCount != null && currentCount > limit) {
+            throw new RateLimitExceededException(
+                    String.format("%s planı için dakikalık (%d) dolmuştur.", client.getPlanTier(), limit)
+            );
         }
     }
 }

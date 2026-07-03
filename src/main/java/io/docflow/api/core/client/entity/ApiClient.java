@@ -21,6 +21,7 @@ public class ApiClient {
     private String companyName;
 
     private String planTier;
+    private String webhookSecret;
     private Integer monthlyQuota;
     private OffsetDateTime createdAt;
 }

@@ -1,0 +1,1 @@
+ALTER TABLE api_clients ADD COLUMN webhook_secret VARCHAR(255) DEFAULT gen_random_uuid();

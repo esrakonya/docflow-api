@@ -6,6 +6,7 @@ import io.docflow.api.core.client.service.UsageService;
 import io.docflow.api.core.document.dto.DocumentUploadedEvent;
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
+import io.docflow.api.core.document.mapper.DocumentMapper;
 import io.docflow.api.core.document.repository.DocumentRepository;
 import io.docflow.api.core.extraction.service.DocumentExtractionService;
 import io.docflow.api.core.storage.service.StorageService;
@@ -40,6 +41,7 @@ public class DocumentController {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final UsageService usageService;
     private final RateLimitingService rateLimitingService;
+    private final DocumentMapper documentMapper;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadDocument(
@@ -50,7 +52,7 @@ public class DocumentController {
                 .getAuthentication()
                 .getPrincipal();
 
-        rateLimitingService.checkRateLimit(currentClient.getApiKeyHash());
+        rateLimitingService.checkRateLimit(currentClient);
 
         usageService.checkAndIncrement(currentClient);
 
@@ -72,7 +74,7 @@ public class DocumentController {
         kafkaTemplate.send("document-uploaded", new DocumentUploadedEvent(
                 savedDoc.getId(), storagePath, file.getContentType()));
 
-        return ResponseEntity.accepted().body(new DocumentResponse(savedDoc.getId(), "PENDING"));
+        return ResponseEntity.accepted().body(documentMapper.toResponse(savedDoc));
     }
 
     @PostMapping(value = "/upload/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -87,7 +89,7 @@ public class DocumentController {
         List<DocumentResponse> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
-            rateLimitingService.checkRateLimit(currentClient.getApiKeyHash());
+            rateLimitingService.checkRateLimit(currentClient);
             usageService.checkAndIncrement(currentClient);
 
             String storagePath = storageService.store(file);
