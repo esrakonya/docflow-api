@@ -17,6 +17,6 @@ public interface ExtractionMapper {
     ExtractedData toEntity(ExtractedInvoiceData dto);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "extarctedData", ignore = true)
+    @Mapping(target = "extractedData", ignore = true)
     DocumentLineItem toEntity(ExtractedInvoiceData.LineItem dto);
 }
