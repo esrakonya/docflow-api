@@ -1,6 +1,7 @@
 package io.docflow.api.config;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,9 +22,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityConfig {
 
     private final ApiKeyAuthenticationFilter apiKeyFilter;
+    private final AppProperties appProperties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -51,9 +54,17 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService(PasswordEncoder encoder) {
+        String username = appProperties.getAdmin().getUsername();
+        String password = appProperties.getAdmin().getPassword();
+
+        if ("admin".equals(username) && "admin123".equals(password)) {
+            log.warn("!!! GÜVENLİK UYARISI: Admin kullanıcı adı/şifresi varsayılan değerlerde (admin/admin123)." +
+                    "Production ortamında ADMIN_USERNAME ve ADMIN_PASSWORD environment değişkenlerini mutlaka ayarlayın!!!");
+        }
+
         UserDetails admin = User.builder()
-                .username("admin")
-                .password(encoder.encode("admin123"))
+                .username(username)
+                .password(encoder.encode(password))
                 .roles("ADMIN")
                 .build();
         return new InMemoryUserDetailsManager(admin);
