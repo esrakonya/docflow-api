@@ -11,6 +11,7 @@ import io.docflow.api.core.document.repository.DocumentRepository;
 import io.docflow.api.core.extraction.service.DocumentExtractionService;
 import io.docflow.api.core.storage.service.StorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -89,6 +90,7 @@ public class DocumentController {
         List<DocumentResponse> responses = new ArrayList<>();
 
         for (MultipartFile file : files) {
+            validateFileType(file);
             rateLimitingService.checkRateLimit(currentClient);
             usageService.checkAndIncrement(currentClient);
 
@@ -129,17 +131,26 @@ public class DocumentController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Document>> getAllDocuments() {
+    public ResponseEntity<List<DocumentResponse>> getAllDocuments() {
         ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
 
-        return ResponseEntity.ok(documentRepository.findAllByClient(currentClient));
+        List<DocumentResponse> responses = documentRepository.findAllByClient(currentClient)
+                .stream()
+                .map(documentMapper::toResponse)
+                .toList();
+
+        return ResponseEntity.ok(responses);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getDocumentDetail(@PathVariable UUID id) {
-        return documentRepository.findById(id)
+    public ResponseEntity<DocumentResponse> getDocumentDetail(@PathVariable UUID id) {
+        ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+
+        return documentRepository.findByIdAndClient(id, currentClient)
+                .map(documentMapper::toResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

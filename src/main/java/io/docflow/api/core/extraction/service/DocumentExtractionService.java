@@ -65,7 +65,7 @@ public class DocumentExtractionService {
                     .build();
 
             String rawResponse = chatClient.prompt()
-                    .user(spec -> spec.text(promptTemplate.render()).media())
+                    .user(spec -> spec.text(promptTemplate.render()).media(media))
                     .call()
                     .content();
 
