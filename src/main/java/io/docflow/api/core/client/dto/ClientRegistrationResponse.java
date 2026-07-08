@@ -5,5 +5,6 @@ import java.util.UUID;
 public record ClientRegistrationResponse(
         UUID clientId,
         String companyName,
-        String rawApiKey
+        String rawApiKey,
+        String webhookSecret
 ) { }

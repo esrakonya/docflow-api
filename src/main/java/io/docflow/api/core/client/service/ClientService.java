@@ -21,12 +21,14 @@ public class ClientService {
 
     public ClientRegistrationResponse registerNewClient(String companyName) {
         String rawKey = "invox_live_" + UUID.randomUUID().toString().replace("-", "");
-
         String hashedkey = HashUtils.sha256(rawKey);
+
+        String webhookSecret = UUID.randomUUID().toString().replace("-", "");
 
         ApiClient client = ApiClient.builder()
                 .companyName(companyName)
                 .apiKeyHash(hashedkey)
+                .webhookSecret(webhookSecret)
                 .planTier("free")
                 .monthlyQuota(100)
                 .createdAt(OffsetDateTime.now())

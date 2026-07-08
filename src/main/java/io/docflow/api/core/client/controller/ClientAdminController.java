@@ -2,6 +2,7 @@ package io.docflow.api.core.client.controller;
 
 import io.docflow.api.core.client.dto.ClientRegistrationResponse;
 import io.docflow.api.core.client.service.ClientService;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,7 +17,7 @@ public class ClientAdminController {
     private final ClientService clientService;
 
     @PostMapping
-    public ClientRegistrationResponse register(@RequestParam String companyName) {
+    public ClientRegistrationResponse register(@RequestParam @NotBlank String companyName) {
         return clientService.registerNewClient(companyName);
     }
 }
