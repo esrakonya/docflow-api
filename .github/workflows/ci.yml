@@ -25,3 +25,4 @@ jobs:
           ANTHROPIC_API_KEY: dummy_key_for_ci
           ADMIN_USERNAME: admin
           ADMIN_PASSWORD: admin123
+          SPRING_TESTCONTAINERS_DYNAMIC_PROPERTY_REGISTRY_INJECTION: allow
