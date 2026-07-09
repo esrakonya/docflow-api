@@ -22,9 +22,9 @@
                     <p><strong>Fatura No:</strong> <span th:text="${data.invoiceNumber}"></span></p>
                     <p><strong>Tarih:</strong> <span th:text="${data.invoiceDate}"></span></p>
                     <p><strong>Vade Tarihi:</strong><span th:text="${data.dueDate}"></span></p>
-                    <p><strong>Vergi (KDV):</strong><span th:text="${data.taxAmount + ' ' + data.currency}"></span></p>
+                    <p><strong>Vergi (KDV):</strong><span th:text="${data.taxAmount != null ? data.taxAmount + ' ' + data.currency : '0.00 ' + data.currency}"></span></p>
                     <div class="alert alert-info mt-2">
-                        Güven Skoru: <strong th:text="${#numbers.formatDecimal(data.overallConfidence * 100, 1, 1) + '%'}"></strong>
+                        Güven Skoru: <strong th:text="${data.overallConfidence != null ? #numbers.formatPercent(data.overallConfidence, 1, 1) : '0%'}"></strong>
                     </div>
                 </div>
             </div>

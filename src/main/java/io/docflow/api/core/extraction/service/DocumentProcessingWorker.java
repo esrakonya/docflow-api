@@ -52,6 +52,8 @@ public class DocumentProcessingWorker {
         log.info("Kafka'dan yeni iş alındı: Document ID {}", event.documentId());
 
         try {
+            Document doc = documentInternalService.getByIdWithClient(event.documentId());
+
             byte[] fileBytes = storageService.fetch(event.storagePath());
 
             ExtractedInvoiceData result = extractionService.extractAndSave(
@@ -62,7 +64,6 @@ public class DocumentProcessingWorker {
 
             logAttempt(event.documentId(), "SUCCESS", null, attempt);
 
-            Document doc = documentInternalService.getById(event.documentId());
             String secret = doc.getClient().getWebhookSecret();
 
             if (doc.getCallbackUrl() != null && !doc.getCallbackUrl().isBlank()) {

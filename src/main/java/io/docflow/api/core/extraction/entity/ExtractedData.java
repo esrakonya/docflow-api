@@ -28,6 +28,10 @@ public class ExtractedData {
     private LocalDate invoiceDate;
     private LocalDate dueDate;
     private BigDecimal totalAmount;
+
+    @Column(name = "tax_amount")
+    private BigDecimal taxAmount;
+
     private String currency;
     private BigDecimal overallConfidence;
 

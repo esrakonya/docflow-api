@@ -42,4 +42,9 @@ public class DocumentInternalService {
         doc.setStatus(DocumentStatus.NEEDS_REVIEW);
         documentRepository.save(doc);
     }
+
+    public Document getByIdWithClient(UUID id) {
+        return documentRepository.findByIdWithClient(id)
+                .orElseThrow(() -> new RuntimeException("Document not found: " + id));
+    }
 }

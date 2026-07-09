@@ -11,7 +11,9 @@ import io.docflow.api.core.document.repository.DocumentRepository;
 import io.docflow.api.core.extraction.service.DocumentExtractionService;
 import io.docflow.api.core.storage.service.StorageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.apache.kafka.common.errors.InvalidRequestException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -119,27 +121,25 @@ public class DocumentController {
     public record DocumentResponse(UUID id, String status) {}
 
     public void validateFileType(MultipartFile file) {
-        if (file.isEmpty()) throw new RuntimeException("Dosya boş olamaz");
+        if (file.isEmpty()) throw new InvalidRequestException("File cannot be empty");
 
         if (file.getSize() > 10 * 1024 * 1024) {
-            throw new RuntimeException("Dosya boyutu çok büyük! Maksimum 10MB yükleyebilirsiniz.");
+            throw new InvalidRequestException("File size exceeds 10MB limit");
         }
 
         if (!SUPPORTED_MIME_TYPES.contains(file.getContentType())) {
-            throw new RuntimeException("Desteklenmeyen dosya formatı!");
+            throw new InvalidRequestException("Unsupported file format: " + file.getContentType());
         }
     }
 
     @GetMapping
-    public ResponseEntity<List<DocumentResponse>> getAllDocuments() {
+    public ResponseEntity<Page<DocumentResponse>> getAllDocuments(Pageable pageable) {
         ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
 
-        List<DocumentResponse> responses = documentRepository.findAllByClient(currentClient)
-                .stream()
-                .map(documentMapper::toResponse)
-                .toList();
+        Page<DocumentResponse> responses = documentRepository.findAllByClient(currentClient, pageable)
+                .map(documentMapper::toResponse);
 
         return ResponseEntity.ok(responses);
     }
