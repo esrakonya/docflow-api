@@ -9,10 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Service
@@ -71,6 +71,28 @@ public class S3StorageService implements StorageService {
             log.info("Dosya MinIO'dan başarıyla silindi: {}", key);
         } catch (Exception e) {
             log.error("MinIO dosya silme hatası: {}", key, e);
+        }
+    }
+
+    @Override
+    public void cleanup(int days) {
+        Instant threshold = Instant.now().minus(days, ChronoUnit.DAYS);
+        log.info("Starting MinIO storage cleanup for files order than {} days (Threshold: {})", days, threshold);
+
+        try {
+            ListObjectsV2Response listResponse = s3Client.listObjectsV2(r -> r.bucket(bucketName));
+
+            int deletedCount = 0;
+            for (S3Object s3Object : listResponse.contents()) {
+                if (s3Object.lastModified().isBefore(threshold)) {
+                    s3Client.deleteObject(r -> r.bucket(bucketName).key(s3Object.key()));
+                    deletedCount++;
+                    log.debug("Deleted old MinIO object: {}", s3Object.key());
+                }
+            }
+            log.info("MinIO cleanup finished. Total deleted objects: {}", deletedCount);
+        } catch (Exception e) {
+            log.error("Error occurred during MinIO cleanup", e);
         }
     }
 }

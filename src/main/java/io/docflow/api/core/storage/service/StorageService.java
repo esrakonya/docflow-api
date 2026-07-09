@@ -12,4 +12,6 @@ public interface StorageService {
     byte[] fetch(String key);
 
     void delete(String key);
+
+    void cleanup(int days);
 }

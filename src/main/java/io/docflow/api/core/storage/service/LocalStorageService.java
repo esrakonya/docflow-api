@@ -8,9 +8,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Service
@@ -74,5 +77,30 @@ public class LocalStorageService implements StorageService {
         } catch (IOException e) {
             log.error("Dosya yerel diskten silinirken hata oluştu: {}", key, e);
         }
+    }
+
+    @Override
+    public void cleanup(int days) {
+       Path root = Paths.get(uploadDir);
+       if (!Files.exists(root)) return;
+
+       Instant threshold = Instant.now().minus(days, ChronoUnit.DAYS);
+       log.info("Starting local storage cleanup for files older than {} days (Threshold: {})", days, threshold);
+
+       try (DirectoryStream<Path> stream = Files.newDirectoryStream(root)) {
+           int deletedCount = 0;
+           for (Path file : stream) {
+               Instant lastModified = Files.getLastModifiedTime(file).toInstant();
+
+               if (lastModified.isBefore(threshold)) {
+                   Files.delete(file);
+                   deletedCount++;
+                   log.debug("Deleted old local file: {}", file.getFileName());
+               }
+           }
+           log.info("Local cleanup finished. Total deleted files: {}", deletedCount);
+       } catch (IOException e) {
+           log.error("Error occurred during local file cleanup", e);
+       }
     }
 }

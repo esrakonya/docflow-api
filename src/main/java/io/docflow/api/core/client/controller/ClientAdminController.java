@@ -1,13 +1,11 @@
 package io.docflow.api.core.client.controller;
 
+import io.docflow.api.core.client.dto.ClientRegistrationRequest;
 import io.docflow.api.core.client.dto.ClientRegistrationResponse;
 import io.docflow.api.core.client.service.ClientService;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/admin/clients")
@@ -17,7 +15,7 @@ public class ClientAdminController {
     private final ClientService clientService;
 
     @PostMapping
-    public ClientRegistrationResponse register(@RequestParam @NotBlank String companyName) {
-        return clientService.registerNewClient(companyName);
+    public ClientRegistrationResponse register(@Valid @RequestBody ClientRegistrationRequest request) {
+        return clientService.registerNewClient(request.name());
     }
 }
