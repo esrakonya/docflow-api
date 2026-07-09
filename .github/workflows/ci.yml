@@ -9,15 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: docflow_db
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-        ports:
-          - 5432:5432
+
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 21
@@ -28,3 +20,8 @@ jobs:
           cache: maven
       - name: Build with Maven
         run: mvn -B package --file pom.xml
+        env:
+          GEMINI_API_KEY: dummy_key_for_ci
+          ANTHROPIC_API_KEY: dummy_key_for_ci
+          ADMIN_USERNAME: admin
+          ADMIN_PASSWORD: admin123
