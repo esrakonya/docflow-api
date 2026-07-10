@@ -21,5 +21,5 @@ public class UsageRecord {
     private String usageMonth;
 
     @Column(name = "request_count")
-    private Integer request_count;
+    private Integer requestCount;
 }

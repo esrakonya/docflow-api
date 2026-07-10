@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.DltHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.retrytopic.DltStrategy;
 import org.springframework.kafka.retrytopic.TopicSuffixingStrategy;
 import org.springframework.messaging.handler.annotation.Header;
@@ -35,8 +36,9 @@ public class DocumentProcessingWorker {
     private final DocumentExtractionService extractionService;
     private final DocumentInternalService documentInternalService;
     private final ProcessingAttemptRepository attemptRepository;
-    private final WebhookService webhookService;
     private final StorageService storageService;
+
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @RetryableTopic(
             attempts = "3",
@@ -72,10 +74,11 @@ public class DocumentProcessingWorker {
                         doc.getStatus(),
                         result
                 );
-                webhookService.sendCallback(doc.getCallbackUrl(), secret,webhookEvent);
+                kafkaTemplate.send("webhook-events", webhookEvent);
+                log.info("Webhook event sent to queue for document: {}", event.documentId());
             }
 
-            log.info("İşlem ve bildirim başarıyla tamamlandı: {}", event.documentId());
+            log.info("Process completed and webhook queued: {}", event.documentId());
 
         } catch (Exception e) {
             log.error("Belge işlenirken hata oluştu! ID: {} - Hata: {}", event.documentId(), attempt);

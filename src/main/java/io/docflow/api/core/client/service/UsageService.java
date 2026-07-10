@@ -18,21 +18,23 @@ public class UsageService {
     private final UsageRecordRepository usageRecordRepository;
 
     @Transactional
-    public void checkAndIncrement(ApiClient client) {
+    public int checkAndReturnRemaining(ApiClient client) {
         String currentMonth = LocalDate.now().toString().substring(0, 7);
 
         UsageRecord usageRecord =usageRecordRepository.findByClientAndUsageMonth(client, currentMonth)
                 .orElse(UsageRecord.builder()
                         .client(client)
                         .usageMonth(currentMonth)
-                        .request_count(0)
+                        .requestCount(0)
                         .build());
 
-        if (usageRecord.getRequest_count() >= client.getMonthlyQuota()) {
-            throw new QuotaExceededException("Aylık kullanım limitiniz " + "(" + client.getMonthlyQuota() + ")" + " dolmuştur.");
+        if (usageRecord.getRequestCount() >= client.getMonthlyQuota()) {
+            throw new QuotaExceededException("Quota exceeded");
         }
 
-        usageRecord.setRequest_count(usageRecord.getRequest_count() + 1);
+        usageRecord.setRequestCount(usageRecord.getRequestCount() + 1);
         usageRecordRepository.save(usageRecord);
+
+        return client.getMonthlyQuota() - usageRecord.getRequestCount();
     }
 }

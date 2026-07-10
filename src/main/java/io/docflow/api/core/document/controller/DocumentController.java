@@ -12,6 +12,7 @@ import io.docflow.api.core.extraction.service.DocumentExtractionService;
 import io.docflow.api.core.storage.service.StorageService;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.InvalidRequestException;
+import org.apache.kafka.common.protocol.types.Field;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -56,10 +57,9 @@ public class DocumentController {
                 .getPrincipal();
 
         rateLimitingService.checkRateLimit(currentClient);
-
-        usageService.checkAndIncrement(currentClient);
-
         validateFileType(file);
+
+        int remaining = usageService.checkAndReturnRemaining(currentClient);
 
         String storagePath = storageService.store(file);
 
@@ -77,7 +77,10 @@ public class DocumentController {
         kafkaTemplate.send("document-uploaded", new DocumentUploadedEvent(
                 savedDoc.getId(), storagePath, file.getContentType()));
 
-        return ResponseEntity.accepted().body(documentMapper.toResponse(savedDoc));
+        return ResponseEntity.accepted()
+                .header("X-RateLimit-Limit", String.valueOf(currentClient.getMonthlyQuota()))
+                .header("X-RateLimit-Remaining", String.valueOf(remaining))
+                .body(documentMapper.toResponse(savedDoc));
     }
 
     @PostMapping(value = "/upload/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -90,11 +93,12 @@ public class DocumentController {
                 .getPrincipal();
 
         List<DocumentResponse> responses = new ArrayList<>();
+        int lastRemaining = currentClient.getMonthlyQuota();
 
         for (MultipartFile file : files) {
             validateFileType(file);
             rateLimitingService.checkRateLimit(currentClient);
-            usageService.checkAndIncrement(currentClient);
+            lastRemaining = usageService.checkAndReturnRemaining(currentClient);
 
             String storagePath = storageService.store(file);
 
@@ -112,10 +116,13 @@ public class DocumentController {
                     savedDoc.getId(), storagePath, file.getContentType()
             ));
 
-            responses.add(new DocumentResponse(savedDoc.getId(), "PENDING"));
+            responses.add(documentMapper.toResponse(savedDoc));
         }
 
-        return ResponseEntity.accepted().body(responses);
+        return ResponseEntity.accepted()
+                .header("X-RateLimit-Limit", String.valueOf(currentClient.getMonthlyQuota()))
+                .header("X-RateLimit-Remaining", String.valueOf(lastRemaining))
+                .body(responses);
     }
 
     public record DocumentResponse(UUID id, String status) {}
