@@ -4,12 +4,12 @@ app:
     password: ${ADMIN_PASSWORD:admin123}
 
 storage:
-  type: minio
+  type: ${STORAGE_TYPE:minio}
   minio:
-    endpoint: http://localhost:9000
-    access-key: minioadmin
-    secret-key: minioadminpassword
-    bucket-name: invoices
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    access-key: ${MINIO_ACCESS_KEY:minioadmin}
+    secret-key: ${MINIO_SECRET_KEY:minioadminpassword}
+    bucket-name: ${MINIO_BUCKET:invoices}
 
 spring:
   application:
@@ -85,7 +85,7 @@ management:
 
 docflow:
    ai:
-     provider: anthropic
+     provider: ${AI_PROVIDER:anthropic}
 ---
 
 spring:

@@ -1,4 +1,4 @@
-package io.docflow.api.config;
+package io.docflow.api.infrastructure.security;
 
 import io.docflow.api.core.client.repository.ApiClientRepository;
 import io.docflow.api.infrastructure.util.HashUtils;
@@ -22,14 +22,17 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     private final ApiClientRepository apiClientRepository;
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String apiKey = request.getHeader("X-API-KEY");
+        String path = request.getServletPath();
 
-        if (apiKey != null) {
-            String hashedKey = HashUtils.sha256(apiKey);
-            apiClientRepository.findByApiKeyHash(hashedKey).ifPresent(client ->{
-                var auth = new UsernamePasswordAuthenticationToken(client, null, Collections.emptyList());
-                SecurityContextHolder.getContext().setAuthentication(auth);
-            });
+        if (!path.startsWith("/api/v1/documents")) {
+            String apiKey = request.getHeader("X-API-KEY");
+            if (apiKey != null) {
+                String hashedKey = HashUtils.sha256(apiKey);
+                apiClientRepository.findByApiKeyHash(hashedKey).ifPresent(client -> {
+                    var auth = new UsernamePasswordAuthenticationToken(client, null, Collections.emptyList());
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                });
+            }
         }
 
         filterChain.doFilter(request, response);

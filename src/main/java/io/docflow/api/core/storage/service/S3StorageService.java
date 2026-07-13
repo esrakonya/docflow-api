@@ -1,5 +1,6 @@
 package io.docflow.api.core.storage.service;
 
+import io.docflow.api.infrastructure.util.FileSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,12 +29,12 @@ public class S3StorageService implements StorageService {
 
     @Override
     public String store(MultipartFile file) {
-        String originalName = file.getOriginalFilename();
-        if (originalName != null && originalName.contains("..")) {
+        String sanitizedOriginalName = FileSanitizer.sanitize(file.getOriginalFilename());
+
+        String fileName = UUID.randomUUID() + "_" + sanitizedOriginalName;
+        if (fileName != null && fileName.contains("..")) {
             throw new RuntimeException("Geçersiz dosya ismi!");
         }
-
-        String fileName = UUID.randomUUID() + "_" + originalName;
 
         try {
             s3Client.putObject(PutObjectRequest.builder()

@@ -1,5 +1,6 @@
 package io.docflow.api.core.storage.service;
 
+import io.docflow.api.infrastructure.util.FileSanitizer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -26,9 +27,11 @@ public class LocalStorageService implements StorageService {
 
     @Override
     public String store(MultipartFile file) {
-        String originalName =file.getOriginalFilename();
-        if (originalName != null && originalName.contains("..")) {
-            log.error("Güvenlik Riski: Dosya isminde '..' tespit edildi! -> {}", originalName);
+        String sanitizedOriginalName = FileSanitizer.sanitize(file.getOriginalFilename());
+        String fileName = UUID.randomUUID() + "_" + sanitizedOriginalName;
+
+        if (fileName!= null && fileName.contains("..")) {
+            log.error("Güvenlik Riski: Dosya isminde '..' tespit edildi! -> {}", fileName);
             throw new RuntimeException("Geçersiz dosya ismi! Path traversal girişimi engellendi.");
         }
 
@@ -39,7 +42,6 @@ public class LocalStorageService implements StorageService {
                 log.info("Yükleme klasörü oluşturuldu: {}", root.toAbsolutePath());
             }
 
-            String fileName = UUID.randomUUID() + "_" + originalName;
             Path destination = root.resolve(fileName);
 
             Files.copy(file.getInputStream(), destination);
@@ -103,4 +105,5 @@ public class LocalStorageService implements StorageService {
            log.error("Error occurred during local file cleanup", e);
        }
     }
+
 }
