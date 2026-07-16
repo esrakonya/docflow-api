@@ -29,7 +29,8 @@ public class SecurityConfig {
     @Order(1)
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         return http
-                .securityMatcher("/api/v1/documents/**")
+                .securityMatchers(matcher -> matcher
+                        .requestMatchers("/api/v1/documents", "/api/v1/documents/**"))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())

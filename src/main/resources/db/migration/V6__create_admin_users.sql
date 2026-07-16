@@ -5,6 +5,3 @@ CREATE TABLE admin_users (
     role VARCHAR(20) DEFAULT 'ROLE_ADMIN',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-
-INSERT INTO admin_users (username, password_hash)
-VALUES ('admin', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.7uqqvOa');
