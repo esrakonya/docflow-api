@@ -1,6 +1,7 @@
 package io.docflow.api.core.extraction.entity;
 
 import io.docflow.api.core.document.entity.Document;
+import io.docflow.api.core.extraction.dto.ExtractionCorrectionRequest;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -8,6 +9,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,4 +47,21 @@ public class ExtractedData {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private List<String> validationWarnings;
+
+    @Version
+    private Long version;
+
+    private LocalDateTime updatedAt;
+
+
+    public void applyCorrection(ExtractionCorrectionRequest request) {
+        this.vendorName = request.vendorName();
+        this.invoiceNumber = request.invoiceNumber();
+        this.invoiceDate = request.invoiceDate();
+        this.totalAmount = request.totalAmount();
+        this.taxAmount = request.taxAmount();
+        this.currency = request.currency();
+        this.updatedAt = LocalDateTime.now();
+        this.overallConfidence = BigDecimal.valueOf(1.0);
+    }
 }

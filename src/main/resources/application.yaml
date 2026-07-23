@@ -53,6 +53,8 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        interceptor.classes: io.micrometer.tracing.otel.bridge.OtKafkaProducerInterceptor
     consumer:
       group-id: docflow-group
       auto-offset-reset: earliest
@@ -73,19 +75,33 @@ springdoc:
   api-docs:
     path: /api-docs
 
+logging:
+  level:
+    org.flywaydb: DEBUG
+
 management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics
+        include: health, info, metrics, tracing
   endpoint:
     health:
       show-details: always
       show-components: always
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: "http://localhost:9411/api/v2/spans"
 
 docflow:
    ai:
      provider: ${AI_PROVIDER:anthropic}
+   security:
+     jwt:
+       secret: ${JWT_SECRET:9a4511d19b5c5346b5a926a1176050b923162123a123123123123123}
+       expiration-ms: 86400000
 ---
 
 spring:

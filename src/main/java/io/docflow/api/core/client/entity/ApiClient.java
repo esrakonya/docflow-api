@@ -23,5 +23,21 @@ public class ApiClient {
     private String planTier;
     private String webhookSecret;
     private Integer monthlyQuota;
+
+    @Column(nullable = false)
+    private Integer remainingQuota;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ClientStatus status = ClientStatus.ACTIVE;
+
     private OffsetDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = OffsetDateTime.now();
+        if (remainingQuota == null) {
+            remainingQuota = monthlyQuota;
+        }
+    }
 }

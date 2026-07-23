@@ -3,6 +3,7 @@ package io.docflow.api.core.admin.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -20,4 +21,5 @@ public class AdminUser {
     private String password;
 
     private String role;
+    private LocalDateTime createdAt;
 }
