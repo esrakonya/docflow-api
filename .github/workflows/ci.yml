@@ -10,6 +10,30 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: docflow_db
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 21
@@ -21,8 +45,14 @@ jobs:
       - name: Build with Maven
         run: mvn -B package --file pom.xml
         env:
-          GEMINI_API_KEY: dummy_key_for_ci
-          ANTHROPIC_API_KEY: dummy_key_for_ci
           ADMIN_USERNAME: admin
           ADMIN_PASSWORD: admin123
           SPRING_TESTCONTAINERS_DYNAMIC_PROPERTY_REGISTRY_INJECTION: allow
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/docflow_db
+          SPRING_DATASOURCE_USERNAME: user
+          SPRING_DATASOURCE_PASSWORD: password
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6379
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'dummy' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'dummy' }}
+          JWT_SECRET: 9a4511d19b5c5346b5a926a1176050b923162123a123123123123123
