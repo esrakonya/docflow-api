@@ -1,11 +1,12 @@
 package io.docflow.api.core.extraction;
 
 import io.docflow.api.BaseIntegrationTest;
+import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
-import io.docflow.api.core.client.repository.ApiClientRepository;
+import io.docflow.api.core.client.entity.ClientStatus;
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
-import io.docflow.api.core.document.repository.DocumentRepository;
+import io.docflow.api.core.document.service.DocumentInternalService;
 import io.docflow.api.core.extraction.dto.ExtractedInvoiceData;
 import io.docflow.api.core.extraction.service.DocumentExtractionService;
 import io.docflow.api.infrastructure.util.HashUtils;
@@ -19,16 +20,17 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -38,11 +40,7 @@ import static org.mockito.Mockito.doAnswer;
 @AutoConfigureMockMvc
 @DirtiesContext
 class FullPipelineIntegrationTest extends BaseIntegrationTest {
-
-    @Autowired private MockMvc mockMvc;
-    @Autowired private DocumentRepository documentRepository;
-    @Autowired private ApiClientRepository apiClientRepository;
-    @Autowired private io.docflow.api.core.document.service.DocumentInternalService documentInternalService; // EKLENDİ
+    @Autowired private DocumentInternalService documentInternalService;
 
     @MockitoBean
     private DocumentExtractionService extractionService;
@@ -54,7 +52,17 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
         ApiClient client = apiClientRepository.save(ApiClient.builder()
                 .companyName("Pipeline Test Co")
                 .apiKeyHash(HashUtils.sha256(apiKey))
+                .status(ClientStatus.ACTIVE)
+                .remainingQuota(100)
                 .planTier("pro").monthlyQuota(1000).build());
+
+        when(clientCacheService.getClientByApiKey(apiKey))
+                .thenReturn(Optional.of(ApiClientDto.builder()
+                        .id(client.getId())
+                        .companyName(client.getCompanyName())
+                        .status(ClientStatus.ACTIVE)
+                        .remainingQuota(100)
+                        .build()));
 
         ExtractedInvoiceData mockResult = new ExtractedInvoiceData(
                 "Mock Store", "M-123", LocalDate.now(), LocalDate.now().plusDays(10),
@@ -62,12 +70,12 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
         );
 
         doAnswer(invocation -> {
-            UUID docId = invocation.getArgument(0); // Metoda gelen ilk parametreyi (ID) al
+            UUID docId = invocation.getArgument(0);
             log.info("Mocking: Updating status for document {}", docId);
 
             documentInternalService.markAsProcessed(docId, java.time.OffsetDateTime.now());
 
-            return mockResult; // Hayali sonucu dön
+            return mockResult;
         }).when(extractionService).extractAndSave(any(), any(), any());
 
         MockMultipartFile file = new MockMultipartFile("file", "invoice.pdf",

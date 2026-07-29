@@ -2,16 +2,13 @@ package io.docflow.api.core.document;
 
 import io.docflow.api.BaseIntegrationTest;
 import io.docflow.api.core.client.entity.ApiClient;
-import io.docflow.api.core.client.repository.ApiClientRepository;
+import io.docflow.api.core.client.entity.ClientStatus;
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
-import io.docflow.api.core.document.repository.DocumentRepository;
 import io.docflow.api.infrastructure.util.HashUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.test.web.servlet.MockMvc;
 
 
 import java.time.OffsetDateTime;
@@ -22,14 +19,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @AutoConfigureMockMvc
 public class DocumentIntegrationTest extends BaseIntegrationTest {
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ApiClientRepository apiClientRepository;
-
-    @Autowired
-    private DocumentRepository documentRepository;
 
     @Test
     @DisplayName("Müşteri A, Müşteri B'ye ait döküman ID'si ile sorgu attığında 404 almalıdır")
@@ -38,6 +27,8 @@ public class DocumentIntegrationTest extends BaseIntegrationTest {
         String rawKeyA = "key-a-789";
         ApiClient clientA = apiClientRepository.save(ApiClient.builder()
                 .companyName("Client A")
+                .status(ClientStatus.ACTIVE)
+                .remainingQuota(100)
                 .apiKeyHash(HashUtils.sha256(rawKeyA))
                 .build());
 
@@ -45,6 +36,8 @@ public class DocumentIntegrationTest extends BaseIntegrationTest {
         ApiClient clientB = apiClientRepository.save(ApiClient.builder()
                 .companyName("Client B")
                 .apiKeyHash(HashUtils.sha256("key-b-456"))
+                .status(ClientStatus.ACTIVE)
+                .remainingQuota(100)
                 .build());
 
         Document secretDocB = documentRepository.save(Document.builder()

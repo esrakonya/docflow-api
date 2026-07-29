@@ -24,9 +24,11 @@ public class ApiClient {
     private String webhookSecret;
     private Integer monthlyQuota;
 
+    @Builder.Default
     @Column(nullable = false)
-    private Integer remainingQuota;
+    private Integer remainingQuota = 100;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ClientStatus status = ClientStatus.ACTIVE;

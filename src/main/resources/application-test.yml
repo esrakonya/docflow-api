@@ -1,0 +1,34 @@
+spring:
+  kafka:
+    producer:
+      properties:
+        interceptor.classes: ""
+
+  data:
+    redis:
+      repositories:
+        enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+management:
+  tracing:
+    enabled: false
+  zipkin:
+    tracing:
+      export:
+        enabled: false
+  endpoints:
+    enabled-by-default: false
+
+app:
+  admin:
+    username: admin
+    password: admin123
