@@ -2,16 +2,12 @@ package io.docflow.api.core.extraction.service;
 
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
-import io.docflow.api.core.document.repository.DocumentRepository;
-import io.docflow.api.core.document.service.DocumentInternalService;
+import io.docflow.api.core.document.service.DocumentService;
 import io.docflow.api.core.extraction.dto.ExtractedInvoiceData;
-import io.docflow.api.core.extraction.entity.DocumentLineItem;
 import io.docflow.api.core.extraction.entity.ExtractedData;
 import io.docflow.api.core.extraction.mapper.ExtractionMapper;
 import io.docflow.api.core.extraction.repository.ExtractedDataRepository;
 import io.docflow.api.core.extraction.validator.ExtractionValidator;
-import io.docflow.api.core.storage.service.StorageService;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -21,13 +17,11 @@ import org.springframework.ai.converter.BeanOutputConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.MimeType;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -39,7 +33,7 @@ import java.util.UUID;
 public class DocumentExtractionService {
 
     private final ChatClient chatClient;
-    private final DocumentInternalService documentInternalService;
+    private final DocumentService documentService;
     private final ExtractedDataRepository extractedDataRepository;
     private final ExtractionValidator extractionValidator;
     private final ExtractionMapper extractionMapper;
@@ -52,7 +46,7 @@ public class DocumentExtractionService {
 
     @Transactional
     public ExtractedInvoiceData extractAndSave(UUID documentId, byte[] fileBytes, String mimeType) {
-        documentInternalService.updateStatus(documentId, DocumentStatus.PROCESSING);
+        documentService.updateStatus(documentId, DocumentStatus.PROCESSING);
 
         try {
             Media media = new Media(MimeType.valueOf(mimeType), new ByteArrayResource(fileBytes));
@@ -90,7 +84,7 @@ public class DocumentExtractionService {
 
         ExtractedData entity = extractionMapper.toEntity(dto);
 
-        Document doc = documentInternalService.getById(documentId);
+        Document doc = documentService.getById(documentId);
         entity.setDocument(doc);
         entity.setRawLlmResponse(rawJson);
         entity.setValidationWarnings(validation.warnings());
@@ -102,10 +96,10 @@ public class DocumentExtractionService {
         extractedDataRepository.save(entity);
 
         if (validation.isValid()) {
-            documentInternalService.markAsProcessed(documentId, OffsetDateTime.now());
+            documentService.markAsProcessed(documentId, OffsetDateTime.now());
             log.info("Belge başarıyla işlendi: {}", documentId);
         } else {
-            documentInternalService.markAsNeedReview(documentId);
+            documentService.markAsNeedReview(documentId);
             log.warn("Belge inceleme gerektiriyor (NEEDS_REVIEW): {}", documentId);
         }
 

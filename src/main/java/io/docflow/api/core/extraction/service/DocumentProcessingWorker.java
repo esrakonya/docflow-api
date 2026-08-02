@@ -5,10 +5,8 @@ import io.docflow.api.core.document.dto.DocumentWebhookEvent;
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
 import io.docflow.api.core.document.entity.ProcessingAttempt;
-import io.docflow.api.core.document.repository.DocumentRepository;
 import io.docflow.api.core.document.repository.ProcessingAttemptRepository;
-import io.docflow.api.core.document.service.DocumentInternalService;
-import io.docflow.api.core.document.service.WebhookService;
+import io.docflow.api.core.document.service.DocumentService;
 import io.docflow.api.core.extraction.dto.ExtractedInvoiceData;
 import io.docflow.api.core.storage.service.StorageService;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +21,6 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -34,7 +30,7 @@ import java.util.UUID;
 public class DocumentProcessingWorker {
 
     private final DocumentExtractionService extractionService;
-    private final DocumentInternalService documentInternalService;
+    private final DocumentService documentService;
     private final ProcessingAttemptRepository attemptRepository;
     private final StorageService storageService;
 
@@ -54,7 +50,7 @@ public class DocumentProcessingWorker {
         log.info("Kafka'dan yeni iş alındı: Document ID {}", event.documentId());
 
         try {
-            Document doc = documentInternalService.getByIdWithClient(event.documentId());
+            Document doc = documentService.getByIdWithClient(event.documentId());
 
             byte[] fileBytes = storageService.fetch(event.storagePath());
 
@@ -94,12 +90,12 @@ public class DocumentProcessingWorker {
     public void handleDlt(DocumentUploadedEvent event) {
         log.error("TÜM DENEMELER BAŞARISIZ! Belge 'FAILED' statüsüne çekiliyor. ID: {}", event.documentId());
 
-        documentInternalService.updateStatus(event.documentId(), DocumentStatus.FAILED);
+        documentService.updateStatus(event.documentId(), DocumentStatus.FAILED);
     }
 
     private void logAttempt(UUID docId, String status, String error, int attemptNumber) {
         try {
-            Document doc = documentInternalService.getById(docId);
+            Document doc = documentService.getById(docId);
             ProcessingAttempt attempt = ProcessingAttempt.builder()
                     .document(doc)
                     .status(status)

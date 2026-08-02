@@ -8,6 +8,7 @@ import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
 import io.docflow.api.core.document.mapper.DocumentMapper;
 import io.docflow.api.core.document.repository.DocumentRepository;
+import io.docflow.api.core.document.service.DocumentService;
 import io.docflow.api.core.extraction.service.DocumentExtractionService;
 import io.docflow.api.core.storage.service.StorageService;
 import io.docflow.api.infrastructure.exception.InvalidRequestException;
@@ -38,10 +39,7 @@ public class DocumentController {
             "application/pdf"
     );
 
-    private final DocumentExtractionService extractionService;
-    private final DocumentRepository documentRepository;
-    private final StorageService storageService;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final DocumentService documentService;
     private final UsageService usageService;
     private final RateLimitingService rateLimitingService;
     private final DocumentMapper documentMapper;
@@ -51,30 +49,14 @@ public class DocumentController {
             @RequestParam("file")MultipartFile file,
             @RequestParam(value = "callbackUrl", required = false) String callbackUrl
     ) {
-        ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
+        ApiClient currentClient = getCurrentClient();
 
         rateLimitingService.checkRateLimit(currentClient);
         validateFileType(file);
 
         int remaining = usageService.checkAndReturnRemaining(currentClient);
 
-        String storagePath = storageService.store(file);
-
-        Document doc = Document.builder()
-                .originalFilename(file.getOriginalFilename())
-                .storagePath(storagePath)
-                .status(DocumentStatus.PENDING)
-                .uploadedAt(OffsetDateTime.now())
-                .client(currentClient)
-                .callbackUrl(callbackUrl)
-                .build();
-
-        Document savedDoc = documentRepository.save(doc);
-
-        kafkaTemplate.send("document-uploaded", new DocumentUploadedEvent(
-                savedDoc.getId(), storagePath, file.getContentType()));
+        Document savedDoc = documentService.uploadSingle(file, callbackUrl, currentClient);
 
         return ResponseEntity.accepted()
                 .header("X-RateLimit-Limit", String.valueOf(currentClient.getMonthlyQuota()))
@@ -87,44 +69,44 @@ public class DocumentController {
             @RequestParam("files") List<MultipartFile> files,
             @RequestParam(value = "callbackUrl", required = false) String callbackUrl
     ) {
-        ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
+        ApiClient currentClient = getCurrentClient();
 
-        List<DocumentResponse> responses = new ArrayList<>();
-        int lastRemaining = currentClient.getMonthlyQuota();
+        rateLimitingService.checkRateLimit(currentClient);
+        files.forEach(this::validateFileType);
+        int remaining = usageService.checkAndReturnRemaining(currentClient);
 
-        for (MultipartFile file : files) {
-            validateFileType(file);
-            rateLimitingService.checkRateLimit(currentClient);
-            lastRemaining = usageService.checkAndReturnRemaining(currentClient);
-
-            String storagePath = storageService.store(file);
-
-            Document doc = Document.builder()
-                    .originalFilename(file.getOriginalFilename())
-                    .storagePath(storagePath)
-                    .status(DocumentStatus.PENDING)
-                    .uploadedAt(OffsetDateTime.now())
-                    .client(currentClient)
-                    .callbackUrl(callbackUrl)
-                    .build();
-            Document savedDoc = documentRepository.save(doc);
-
-            kafkaTemplate.send("document-uploaded", new DocumentUploadedEvent(
-                    savedDoc.getId(), storagePath, file.getContentType()
-            ));
-
-            responses.add(documentMapper.toResponse(savedDoc));
-        }
+        List<Document> savedDocs = documentService.uploadBatch(files, callbackUrl, currentClient);
+        List<DocumentResponse> responses = savedDocs.stream()
+                .map(documentMapper::toResponse)
+                .toList();
 
         return ResponseEntity.accepted()
                 .header("X-RateLimit-Limit", String.valueOf(currentClient.getMonthlyQuota()))
-                .header("X-RateLimit-Remaining", String.valueOf(lastRemaining))
+                .header("X-RateLimit-Remaining", String.valueOf(remaining))
                 .body(responses);
     }
 
-    public record DocumentResponse(UUID id, String status) {}
+    @GetMapping
+    public ResponseEntity<Page<DocumentResponse>> getAllDocuments(Pageable pageable) {
+
+        Page<DocumentResponse> responses = documentService.findAllByClient(getCurrentClient(), pageable)
+                .map(documentMapper::toResponse);
+
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<DocumentResponse> getDocumentDetail(@PathVariable UUID id) {
+
+        return documentService.findByIdAndClient(id, getCurrentClient())
+                .map(documentMapper::toResponse)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    private ApiClient getCurrentClient() {
+        return (ApiClient) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
 
     public void validateFileType(MultipartFile file) {
         if (file.isEmpty()) throw new InvalidRequestException("File cannot be empty");
@@ -138,28 +120,7 @@ public class DocumentController {
         }
     }
 
-    @GetMapping
-    public ResponseEntity<Page<DocumentResponse>> getAllDocuments(Pageable pageable) {
-        ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
-
-        Page<DocumentResponse> responses = documentRepository.findAllByClient(currentClient, pageable)
-                .map(documentMapper::toResponse);
-
-        return ResponseEntity.ok(responses);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<DocumentResponse> getDocumentDetail(@PathVariable UUID id) {
-        ApiClient currentClient = (ApiClient) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-
-        return documentRepository.findByIdAndClient(id, currentClient)
-                .map(documentMapper::toResponse)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
+    public record DocumentResponse(UUID id, String status) {}
 }
 
 

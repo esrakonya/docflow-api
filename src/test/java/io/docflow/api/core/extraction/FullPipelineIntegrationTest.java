@@ -6,7 +6,7 @@ import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.client.entity.ClientStatus;
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
-import io.docflow.api.core.document.service.DocumentInternalService;
+import io.docflow.api.core.document.service.DocumentService;
 import io.docflow.api.core.extraction.dto.ExtractedInvoiceData;
 import io.docflow.api.core.extraction.service.DocumentExtractionService;
 import io.docflow.api.infrastructure.util.HashUtils;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.doAnswer;
 @AutoConfigureMockMvc
 @DirtiesContext
 class FullPipelineIntegrationTest extends BaseIntegrationTest {
-    @Autowired private DocumentInternalService documentInternalService;
+    @Autowired private DocumentService documentService;
 
     @MockitoBean
     private DocumentExtractionService extractionService;
@@ -73,7 +73,7 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
             UUID docId = invocation.getArgument(0);
             log.info("Mocking: Updating status for document {}", docId);
 
-            documentInternalService.markAsProcessed(docId, java.time.OffsetDateTime.now());
+            documentService.markAsProcessed(docId, java.time.OffsetDateTime.now());
 
             return mockResult;
         }).when(extractionService).extractAndSave(any(), any(), any());

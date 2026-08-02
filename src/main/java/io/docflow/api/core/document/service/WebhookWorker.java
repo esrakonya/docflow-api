@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class WebhookWorker {
     private final WebhookService webhookService;
-    private final DocumentInternalService documentInternalService;
+    private final DocumentService documentService;
 
     @RetryableTopic(
             attempts = "5",
@@ -22,7 +22,7 @@ public class WebhookWorker {
     )
     @KafkaListener(topics = "webhook-events", groupId = "docflow-webhook-group")
     private void handleWebhookEvent(DocumentWebhookEvent event) {
-        Document doc = documentInternalService.getById(event.documentId());
+        Document doc = documentService.getById(event.documentId());
         String secret = doc.getClient().getWebhookSecret();
 
         webhookService.sendCallback(doc.getCallbackUrl(), secret, event);

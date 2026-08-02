@@ -1,7 +1,10 @@
 package io.docflow.api.core.document.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.docflow.api.core.document.dto.DocumentWebhookEvent;
+import io.docflow.api.infrastructure.exception.WebhookDeliveryException;
 import io.docflow.api.infrastructure.util.HashUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -15,11 +18,11 @@ import java.net.UnknownHostException;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class WebhookService {
 
-    private static final int CONNECT_TIMEOUT_MS = 3000;
-    private static final int READ_TIMEOUT_MS = 5000;
+    private final ObjectMapper objectMapper;
 
     private final RestClient restClient = RestClient.builder()
             .requestFactory(createTimeoutRequestFactory())
@@ -27,53 +30,42 @@ public class WebhookService {
 
     private static SimpleClientHttpRequestFactory createTimeoutRequestFactory() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(CONNECT_TIMEOUT_MS);
-        factory.setReadTimeout(READ_TIMEOUT_MS);
+        factory.setConnectTimeout(3000);
+        factory.setReadTimeout(5000);
         return factory;
     }
 
     private boolean isUrlAllowed(String url) {
         try {
-            URI uri = new java.net.URI(url);
+            URI uri = new URI(url);
             String host = uri.getHost();
             String scheme = uri.getScheme();
 
             if (host == null || scheme == null) return false;
-
-            scheme = scheme.toLowerCase();
-            if (!"http".equals(scheme) && !"https".equals(scheme)) return false;
+            if (!"http".equals(scheme.toLowerCase()) && !"https".equals(scheme.toLowerCase())) return false;
 
             InetAddress[] addresses = InetAddress.getAllByName(host);
             if (addresses.length == 0) return false;
 
             for (InetAddress address : addresses) {
                 if (isBlockedAddress(address)) {
-                    log.warn("SSFR: şüphesi: {} hostname'i engellenmiş bir IP'ye ({}) çözüldü", host, address.getHostAddress());
+                    log.warn("SSRF ATTEMPT: Host {} resolved to blocked IP {}", host, address.getHostAddress());
                     return false;
                 }
             }
 
             return true;
-        } catch (UnknownHostException e) {
-            log.warn("Webhook hostname'i çözülemedi, engellendi: {}", url);
-            return false;
         } catch (Exception e) {
             return false;
         }
     }
 
     private boolean isBlockedAddress(InetAddress address) {
-        if (address.isLoopbackAddress()) return true;
-        if (address.isLinkLocalAddress()) return true;
-        if (address.isSiteLocalAddress()) return true;
-        if (address.isAnyLocalAddress()) return true;
-        if (address.isMulticastAddress()) return true;
-
-        if (address instanceof Inet4Address && "169.254.169.254".equals(address.getHostAddress())) {
-            return true;
-        }
-
-        return false;
+        return address.isLoopbackAddress() ||
+                address.isLinkLocalAddress() ||
+                address.isSiteLocalAddress() ||
+                address.isAnyLocalAddress() ||
+                (address instanceof Inet4Address && "169.254.169.254".equals(address.getHostAddress()));
     }
 
     public void sendCallback(String callbackUrl, String secret, DocumentWebhookEvent event) {
@@ -82,26 +74,29 @@ public class WebhookService {
         }
 
         if (!isUrlAllowed(callbackUrl)) {
-            log.warn("GÜVENLİ OLMAYAN WEBHOOK ADRESİ ENGELLENDİ: {}", callbackUrl);
+            log.warn("SSRF PROTECTION: Blocked unsafe webhook target: {}", callbackUrl);
             return;
         }
 
         try {
-            String signature = HashUtils.hmacSha256(event.documentId().toString(), secret);
-            log.info("Webhook gönderiliyor: {} -> {}", callbackUrl, event.documentId());
+            String jsonPayload = objectMapper.writeValueAsString(event);
+
+            String signature = HashUtils.hmacSha256(jsonPayload, secret);
+
+            log.info("Sending Webhook: {} (DocId: {})", callbackUrl, event.documentId());
 
             restClient.post()
                     .uri(callbackUrl)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .header("X-Invox-Signature", signature)
-                    .body(event)
+                    .header("X-DocFlow-Signature", signature)
+                    .body(jsonPayload)
                     .retrieve()
                     .toBodilessEntity();
 
-            log.info("Webhook başarıyla ulaştı. İmza: {}", signature);
+            log.info("Webhook delivered successfully.");
         } catch (Exception e) {
-            log.error("Webhook gönderilemedi! Hedef URL: {}", callbackUrl, e);
-            // Could be Retry mechanism
+            log.error("Webhook delivery failed for URL: {}. Reason: {}", callbackUrl, e.getMessage());
+            throw new WebhookDeliveryException("Webhook failed, scheduling retry...", e);
         }
     }
 }
