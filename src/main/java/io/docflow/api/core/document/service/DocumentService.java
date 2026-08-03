@@ -10,6 +10,7 @@ import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
 import io.docflow.api.core.document.repository.DocumentRepository;
 import io.docflow.api.core.storage.service.StorageService;
+import io.docflow.api.infrastructure.util.FileSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -77,10 +78,12 @@ public class DocumentService {
 
     @Transactional
     public Document uploadSingle(MultipartFile file, String callbackUrl, ApiClient client) {
+        String safeFilename = FileSanitizer.sanitize(file.getOriginalFilename());
+
         String storagePath = storageService.store(file);
 
         Document doc = Document.builder()
-                .originalFilename(file.getOriginalFilename())
+                .originalFilename(safeFilename)
                 .storagePath(storagePath)
                 .status(DocumentStatus.PENDING)
                 .uploadedAt(OffsetDateTime.now())

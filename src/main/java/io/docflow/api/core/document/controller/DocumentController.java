@@ -12,6 +12,8 @@ import io.docflow.api.core.document.service.DocumentService;
 import io.docflow.api.core.extraction.service.DocumentExtractionService;
 import io.docflow.api.core.storage.service.StorageService;
 import io.docflow.api.infrastructure.exception.InvalidRequestException;
+import io.docflow.api.infrastructure.util.FileSanitizer;
+import io.docflow.api.infrastructure.util.FileValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,16 +35,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DocumentController {
 
-    private static final Set<String> SUPPORTED_MIME_TYPES = Set.of(
-            "image/png",
-            "image/jpeg",
-            "application/pdf"
-    );
-
     private final DocumentService documentService;
     private final UsageService usageService;
     private final RateLimitingService rateLimitingService;
     private final DocumentMapper documentMapper;
+    private final FileValidator fileValidator;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadDocument(
@@ -52,7 +49,7 @@ public class DocumentController {
         ApiClient currentClient = getCurrentClient();
 
         rateLimitingService.checkRateLimit(currentClient);
-        validateFileType(file);
+        fileValidator.validate(file);
 
         int remaining = usageService.checkAndReturnRemaining(currentClient);
 
@@ -72,7 +69,7 @@ public class DocumentController {
         ApiClient currentClient = getCurrentClient();
 
         rateLimitingService.checkRateLimit(currentClient);
-        files.forEach(this::validateFileType);
+        files.forEach(fileValidator::validate);
         int remaining = usageService.checkAndReturnRemaining(currentClient);
 
         List<Document> savedDocs = documentService.uploadBatch(files, callbackUrl, currentClient);
@@ -106,18 +103,6 @@ public class DocumentController {
 
     private ApiClient getCurrentClient() {
         return (ApiClient) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    }
-
-    public void validateFileType(MultipartFile file) {
-        if (file.isEmpty()) throw new InvalidRequestException("File cannot be empty");
-
-        if (file.getSize() > 10 * 1024 * 1024) {
-            throw new InvalidRequestException("File size exceeds 10MB limit");
-        }
-
-        if (!SUPPORTED_MIME_TYPES.contains(file.getContentType())) {
-            throw new InvalidRequestException("Unsupported file format: " + file.getContentType());
-        }
     }
 
     public record DocumentResponse(UUID id, String status) {}
