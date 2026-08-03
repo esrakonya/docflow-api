@@ -51,11 +51,13 @@ class RateLimitingIntegrationTest extends BaseIntegrationTest {
                 .doThrow(new RateLimitExceededException("Rate limit exceeded"))
                 .when(rateLimitingService).checkRateLimit(any(ApiClient.class));
 
+        byte[] pdfBytes = "%PDF-1.5\n%test".getBytes();
+
         MockMultipartFile file = new MockMultipartFile(
                 "file",
-                "test.png",
+                "test.pdf",
                 MediaType.IMAGE_PNG_VALUE,
-                "test image content".getBytes()
+                pdfBytes
         );
 
 

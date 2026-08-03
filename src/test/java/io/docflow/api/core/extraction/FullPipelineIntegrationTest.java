@@ -78,8 +78,10 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
             return mockResult;
         }).when(extractionService).extractAndSave(any(), any(), any());
 
+        byte[] pdfContent = "%PDF-1.5\n%abc".getBytes();
+
         MockMultipartFile file = new MockMultipartFile("file", "invoice.pdf",
-                MediaType.APPLICATION_PDF_VALUE, "fake pdf content".getBytes());
+                MediaType.APPLICATION_PDF_VALUE, pdfContent);
 
         mockMvc.perform(multipart("/api/v1/documents/upload")
                         .file(file)
