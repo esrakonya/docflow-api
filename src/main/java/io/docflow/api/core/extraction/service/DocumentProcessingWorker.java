@@ -47,7 +47,7 @@ public class DocumentProcessingWorker {
             DocumentUploadedEvent event,
             @Header(name = "kafka_deliveryAttempt", defaultValue = "1") int attempt  //Kafka retry count
     ) {
-        log.info("Kafka'dan yeni iş alındı: Document ID {}", event.documentId());
+        log.info("New job received from Kafka: Document ID {}", event.documentId());
 
         try {
             Document doc = documentService.getByIdWithClient(event.documentId());
@@ -77,7 +77,7 @@ public class DocumentProcessingWorker {
             log.info("Process completed and webhook queued: {}", event.documentId());
 
         } catch (Exception e) {
-            log.error("Belge işlenirken hata oluştu! ID: {} - Hata: {}", event.documentId(), attempt);
+            log.error("Error processing document! ID: {} - Error: {}", event.documentId(), attempt);
 
             logAttempt(event.documentId(), "FAILED", e.getMessage(), attempt);
 
@@ -88,7 +88,7 @@ public class DocumentProcessingWorker {
 
     @DltHandler
     public void handleDlt(DocumentUploadedEvent event) {
-        log.error("TÜM DENEMELER BAŞARISIZ! Belge 'FAILED' statüsüne çekiliyor. ID: {}", event.documentId());
+        log.error("ALL RETRIES FAILED! Marking document as FAILED. ID: {}", event.documentId());
 
         documentService.updateStatus(event.documentId(), DocumentStatus.FAILED);
     }
@@ -105,7 +105,7 @@ public class DocumentProcessingWorker {
                     .build();
             attemptRepository.save(attempt);
         } catch (Exception e) {
-            log.error("Deneme kaydı veritabanına yazılamadı!", e);
+            log.error("The trial record could not be written to the database!", e);
         }
     }
 }
