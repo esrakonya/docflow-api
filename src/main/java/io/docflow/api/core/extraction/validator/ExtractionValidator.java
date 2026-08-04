@@ -21,15 +21,19 @@ public class ExtractionValidator {
             warnings.add("Düşük güven skoru: " + data.confidence());
         }
 
-        BigDecimal sumOfItems = data.lineItems().stream()
-                .map(ExtractedInvoiceData.LineItem::lineTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (data.totalAmount() == null) {
+            warnings.add("Fatura toplam tutarı tespit edilemedi.");
+        } else {
+            BigDecimal sumOfItems = data.lineItems().stream()
+                    .map(ExtractedInvoiceData.LineItem::lineTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal tax = data.taxAmount() != null ? data.taxAmount() : BigDecimal.ZERO;
-        BigDecimal calculatedTotal = sumOfItems.add(tax);
+            BigDecimal tax = data.taxAmount() != null ? data.taxAmount() : BigDecimal.ZERO;
+            BigDecimal calculatedTotal = sumOfItems.add(tax);
 
-        if (data.totalAmount().subtract(calculatedTotal).abs().compareTo(new BigDecimal("0.05")) > 0) {
-            warnings.add(String.format("Matematiksel tutarsızlık! Okunan %s, Hesaplanan: %s", data.totalAmount(), calculatedTotal));
+            if (data.totalAmount().subtract(calculatedTotal).abs().compareTo(new BigDecimal("0.05")) > 0) {
+                warnings.add(String.format("Matematiksel tutarsızlık! Okunan %s, Hesaplanan: %s", data.totalAmount(), calculatedTotal));
+            }
         }
 
         if (data.vendorName() == null || data.vendorName().isBlank()) {
