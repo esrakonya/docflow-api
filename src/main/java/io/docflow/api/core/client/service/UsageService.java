@@ -2,6 +2,7 @@ package io.docflow.api.core.client.service;
 
 import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.client.entity.UsageRecord;
+import io.docflow.api.core.client.repository.ApiClientRepository;
 import io.docflow.api.core.client.repository.UsageRecordRepository;
 import io.docflow.api.infrastructure.exception.QuotaExceededException;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import java.time.LocalDate;
 public class UsageService {
 
     private final UsageRecordRepository usageRecordRepository;
+    private final ApiClientRepository apiClientRepository;
 
     @Transactional
     public int checkAndReturnRemaining(ApiClient client) {
@@ -29,12 +31,16 @@ public class UsageService {
                         .build());
 
         if (usageRecord.getRequestCount() >= client.getMonthlyQuota()) {
-            throw new QuotaExceededException("Quota exceeded");
+            throw new QuotaExceededException("Quota exceeded for this month");
         }
 
         usageRecord.setRequestCount(usageRecord.getRequestCount() + 1);
         usageRecordRepository.save(usageRecord);
 
-        return client.getMonthlyQuota() - usageRecord.getRequestCount();
+        apiClientRepository.decrementRemainingQuota(client.getId());
+
+        client.setRemainingQuota(client.getRemainingQuota() - 1);
+
+        return client.getRemainingQuota();
     }
 }

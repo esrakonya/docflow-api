@@ -36,7 +36,6 @@ import java.util.UUID;
 public class DocumentController {
 
     private final DocumentService documentService;
-    private final UsageService usageService;
     private final RateLimitingService rateLimitingService;
     private final DocumentMapper documentMapper;
     private final FileValidator fileValidator;
@@ -51,13 +50,11 @@ public class DocumentController {
         rateLimitingService.checkRateLimit(currentClient);
         fileValidator.validate(file);
 
-        int remaining = usageService.checkAndReturnRemaining(currentClient);
-
         Document savedDoc = documentService.uploadSingle(file, callbackUrl, currentClient);
 
         return ResponseEntity.accepted()
                 .header("X-RateLimit-Limit", String.valueOf(currentClient.getMonthlyQuota()))
-                .header("X-RateLimit-Remaining", String.valueOf(remaining))
+                .header("X-RateLimit-Remaining", String.valueOf(currentClient.getRemainingQuota()))
                 .body(documentMapper.toResponse(savedDoc));
     }
 
@@ -70,7 +67,6 @@ public class DocumentController {
 
         rateLimitingService.checkRateLimit(currentClient);
         files.forEach(fileValidator::validate);
-        int remaining = usageService.checkAndReturnRemaining(currentClient);
 
         List<Document> savedDocs = documentService.uploadBatch(files, callbackUrl, currentClient);
         List<DocumentResponse> responses = savedDocs.stream()
@@ -79,7 +75,7 @@ public class DocumentController {
 
         return ResponseEntity.accepted()
                 .header("X-RateLimit-Limit", String.valueOf(currentClient.getMonthlyQuota()))
-                .header("X-RateLimit-Remaining", String.valueOf(remaining))
+                .header("X-RateLimit-Remaining", String.valueOf(currentClient.getRemainingQuota()))
                 .body(responses);
     }
 

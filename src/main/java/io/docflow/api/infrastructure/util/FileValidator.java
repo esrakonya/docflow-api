@@ -18,7 +18,7 @@ public class FileValidator {
     private static final Set<String> ALLOWED_TYPES = Set.of(
             "application/pdf",
             "image/png",
-            "image/jpg"
+            "image/jpeg"
     );
 
     public void validate(MultipartFile file) {

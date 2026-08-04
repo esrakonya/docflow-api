@@ -9,6 +9,7 @@ import io.docflow.api.core.document.entity.DocumentStatus;
 import io.docflow.api.core.document.service.DocumentService;
 import io.docflow.api.core.extraction.dto.ExtractedInvoiceData;
 import io.docflow.api.core.extraction.service.DocumentExtractionService;
+import io.docflow.api.infrastructure.messaging.OutboxRelay;
 import io.docflow.api.infrastructure.util.HashUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
@@ -30,17 +31,16 @@ import java.util.UUID;
 
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import static org.mockito.Mockito.doAnswer;
 
 @Slf4j
 @AutoConfigureMockMvc
 @DirtiesContext
 class FullPipelineIntegrationTest extends BaseIntegrationTest {
     @Autowired private DocumentService documentService;
+    @Autowired private OutboxRelay outboxRelay;
 
     @MockitoBean
     private DocumentExtractionService extractionService;
@@ -63,6 +63,8 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
                         .status(ClientStatus.ACTIVE)
                         .remainingQuota(100)
                         .build()));
+
+        doNothing().when(rateLimitingService).checkRateLimit(any());
 
         ExtractedInvoiceData mockResult = new ExtractedInvoiceData(
                 "Mock Store", "M-123", LocalDate.now(), LocalDate.now().plusDays(10),
@@ -87,6 +89,8 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
                         .file(file)
                         .header("X-API-KEY", apiKey))
                 .andExpect(status().isAccepted());
+
+        outboxRelay.relayMessages();
 
         log.info("File uploaded to CI, waiting for async pipeline...");
 

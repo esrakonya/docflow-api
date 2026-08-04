@@ -3,6 +3,7 @@ package io.docflow.api.core.document.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.docflow.api.core.client.entity.ApiClient;
+import io.docflow.api.core.client.service.UsageService;
 import io.docflow.api.core.common.entity.OutboxMessage;
 import io.docflow.api.core.common.repository.OutboxRepository;
 import io.docflow.api.core.document.dto.DocumentUploadedEvent;
@@ -35,6 +36,7 @@ public class DocumentService {
     private final OutboxRepository outboxRepository;
     private final StorageService storageService;
     private final ObjectMapper objectMapper;
+    private final UsageService usageService;
 
     public Document getById(UUID id) {
         return documentRepository.findById(id)
@@ -78,8 +80,9 @@ public class DocumentService {
 
     @Transactional
     public Document uploadSingle(MultipartFile file, String callbackUrl, ApiClient client) {
-        String safeFilename = FileSanitizer.sanitize(file.getOriginalFilename());
+        usageService.checkAndReturnRemaining(client);
 
+        String safeFilename = FileSanitizer.sanitize(file.getOriginalFilename());
         String storagePath = storageService.store(file);
 
         Document doc = Document.builder()

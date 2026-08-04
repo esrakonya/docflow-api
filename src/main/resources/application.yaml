@@ -52,7 +52,7 @@ spring:
     bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       observation-enabled: true
     consumer:
       group-id: docflow-group
@@ -62,9 +62,7 @@ spring:
       observation-enabled: true
       properties:
         spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
-        spring.json.value.default.type: "io.docflow.api.core.document.dto.DocumentUploadedEvent"
-        spring.json.use.type.headers: false
-        spring.json.trusted.packages: "io.docflow.api.*"
+        spring.json.trusted.packages: "io.docflow.api.*,java.util,java.lang"
 
   data:
     redis:
@@ -103,7 +101,7 @@ docflow:
      provider: ${AI_PROVIDER:anthropic}
    security:
      jwt:
-       secret: ${JWT_SECRET:9a4511d19b5c5346b5a926a1176050b923162123a123123123123123}
+       secret: ${JWT_SECRET}
        expiration-ms: 86400000
 ---
 

@@ -28,6 +28,11 @@ management:
   endpoints:
     enabled-by-default: false
 
+docflow:
+  security:
+    jwt:
+      secret: dGVzdC1zZWNyZXQta2V5LWF0LWxlYXN0LTMyLWJ5dGVzLWxvbmctZm9yLWhtYWMtc2hh
+
 app:
   admin:
     username: admin
