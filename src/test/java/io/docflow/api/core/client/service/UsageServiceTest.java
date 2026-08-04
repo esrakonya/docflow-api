@@ -27,19 +27,18 @@ class UsageServiceTest {
     @InjectMocks private UsageService usageService;
 
     @Test
-    @DisplayName("Kota dolduğunda QuotaExceededException fırlatmalı")
+    @DisplayName("Atomik kota düşümü 0 dönerse QuotaExceededException fırlatmalı")
     void shouldThrowExceptionWhenQuotaIsFull() {
-        ApiClient client = ApiClient.builder().monthlyQuota(5).build();
-        UsageRecord fullRecord = UsageRecord.builder().requestCount(5).build();
+        UUID clientId = UUID.randomUUID();
+        ApiClient client = ApiClient.builder().id(clientId).build();
 
-        when(usageRecordRepository.findByClientAndUsageMonth(any(), any()))
-                .thenReturn(Optional.of(fullRecord));
+        when(apiClientRepository.decrementRemainingQuota(clientId)).thenReturn(0);
 
         assertThrows(QuotaExceededException.class, () ->
                 usageService.checkAndReturnRemaining(client));
 
+        verify(apiClientRepository, times(1)).decrementRemainingQuota(any());
         verify(usageRecordRepository, never()).save(any());
-        verify(apiClientRepository, never()).decrementRemainingQuota(any());
     }
 
     @Test
@@ -48,19 +47,21 @@ class UsageServiceTest {
         UUID clientId = UUID.randomUUID();
         ApiClient client = ApiClient.builder()
                 .id(clientId)
-                .monthlyQuota(10)
-                .remainingQuota(8)
+                .monthlyQuota(100)
+                .remainingQuota(10)
                 .build();
 
-        UsageRecord record = UsageRecord.builder().requestCount(2).build();
+        UsageRecord record = UsageRecord.builder().requestCount(5).build();
+
+        when(apiClientRepository.decrementRemainingQuota(clientId)).thenReturn(1);
 
         when(usageRecordRepository.findByClientAndUsageMonth(any(), any()))
                 .thenReturn(Optional.of(record));
 
         int remaining = usageService.checkAndReturnRemaining(client);
 
-        assertEquals(7, remaining);
-        verify(usageRecordRepository, times(1)).save(record);
+        assertEquals(9, remaining);
         verify(apiClientRepository, times(1)).decrementRemainingQuota(clientId);
+        verify(usageRecordRepository, times(1)).save(record);
     }
 }
