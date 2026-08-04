@@ -1,6 +1,7 @@
 package io.docflow.api;
 
 import io.docflow.api.core.client.repository.ApiClientRepository;
+import io.docflow.api.core.client.repository.UsageRecordRepository;
 import io.docflow.api.core.client.service.ClientCacheService;
 import io.docflow.api.core.client.service.RateLimitingService;
 import io.docflow.api.core.document.repository.DocumentRepository;
@@ -27,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 public abstract class BaseIntegrationTest {
     @Autowired protected ApiClientRepository apiClientRepository;
     @Autowired protected DocumentRepository documentRepository;
+    @Autowired protected UsageRecordRepository usageRecordRepository;
     @Autowired protected MockMvc mockMvc;
 
 

@@ -21,6 +21,12 @@ public class UsageService {
 
     @Transactional
     public int checkAndReturnRemaining(ApiClient client) {
+        int updatedRows = apiClientRepository.decrementRemainingQuota(client.getId());
+
+        if (updatedRows == 0) {
+            throw new QuotaExceededException("Yetersiz kota! Eşzamanlı istekler dahil tüm limitler doldu.");
+        }
+
         String currentMonth = LocalDate.now().toString().substring(0, 7);
 
         UsageRecord usageRecord =usageRecordRepository.findByClientAndUsageMonth(client, currentMonth)
@@ -36,8 +42,6 @@ public class UsageService {
 
         usageRecord.setRequestCount(usageRecord.getRequestCount() + 1);
         usageRecordRepository.save(usageRecord);
-
-        apiClientRepository.decrementRemainingQuota(client.getId());
 
         client.setRemainingQuota(client.getRemainingQuota() - 1);
 
