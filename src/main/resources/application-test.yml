@@ -35,5 +35,5 @@ docflow:
 
 app:
   admin:
-    username: admin
-    password: admin123
+    username: test-admin
+    password: test-password123

@@ -24,7 +24,7 @@ public class UsageService {
         int updatedRows = apiClientRepository.decrementRemainingQuota(client.getId());
 
         if (updatedRows == 0) {
-            throw new QuotaExceededException("Yetersiz kota! Eşzamanlı istekler dahil tüm limitler doldu.");
+            throw new QuotaExceededException("Insufficient quota! All limits have been exceeded, including concurrent requests.");
         }
 
         String currentMonth = LocalDate.now().toString().substring(0, 7);
