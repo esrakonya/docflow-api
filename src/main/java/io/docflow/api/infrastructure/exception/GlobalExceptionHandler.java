@@ -57,6 +57,11 @@ public class GlobalExceptionHandler {
                 "An unexpected error occurred. Our engineers are notified.", List.of());
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", ex.getMessage(), List.of());
+    }
+
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String code, String message, List<String> details) {
         ErrorResponse error = new ErrorResponse(
                 code,

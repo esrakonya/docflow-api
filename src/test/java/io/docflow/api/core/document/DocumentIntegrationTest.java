@@ -1,6 +1,7 @@
 package io.docflow.api.core.document;
 
 import io.docflow.api.BaseIntegrationTest;
+import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.client.entity.ClientStatus;
 import io.docflow.api.core.document.entity.Document;
@@ -12,7 +13,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -29,8 +32,19 @@ public class DocumentIntegrationTest extends BaseIntegrationTest {
                 .companyName("Client A")
                 .status(ClientStatus.ACTIVE)
                 .remainingQuota(100)
+                .monthlyQuota(100)
+                .planTier("free")
                 .apiKeyHash(HashUtils.sha256(rawKeyA))
                 .build());
+
+        when(clientCacheService.getClientByApiKey(rawKeyA))
+                .thenReturn(Optional.of(ApiClientDto.builder()
+                        .id(clientA.getId())
+                        .companyName(clientA.getCompanyName())
+                        .status(ClientStatus.ACTIVE)
+                        .monthlyQuota(100)
+                        .planTier("free")
+                        .build()));
 
         // Create a client B
         ApiClient clientB = apiClientRepository.save(ApiClient.builder()

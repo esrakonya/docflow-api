@@ -1,13 +1,17 @@
 package io.docflow.api.infrastructure.security;
 
 import io.docflow.api.core.client.entity.ApiClient;
+import io.docflow.api.core.client.entity.ClientStatus;
 import io.docflow.api.core.client.repository.ApiClientRepository;
+import io.docflow.api.core.client.service.ClientCacheService;
 import io.docflow.api.infrastructure.util.HashUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -22,23 +26,39 @@ import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
-    private final ApiClientRepository apiClientRepository;
+    private final ClientCacheService clientCacheService;
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String apiKey = request.getHeader("X-API-KEY");
 
-        if (apiKey != null) {
-            String hashedKey = HashUtils.sha256(apiKey);
+        if (apiKey != null && !apiKey.isBlank()) {
+            try {
 
-            var clientOptional = apiClientRepository.findByApiKeyHash(hashedKey);
+                clientCacheService.getClientByApiKey(apiKey).ifPresent(clientDto -> {
+                    if (clientDto.getStatus() != ClientStatus.ACTIVE) {
+                        log.warn("Access denied for client '{}' with status: {}", clientDto.getCompanyName(), clientDto.getStatus());
+                        throw new BadCredentialsException("API Key is " + clientDto.getStatus().name());
+                    }
 
-            if (clientOptional.isPresent()) {
-                var client = clientOptional.get();
-                var authorities = List.of(new SimpleGrantedAuthority("ROLE_CLIENT"));
-                var auth = new UsernamePasswordAuthenticationToken(client, null, authorities);
-                SecurityContextHolder.getContext().setAuthentication(auth);
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            clientDto,
+                            null,
+                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_CLIENT"))
+                    );
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.debug("Client authenticated successfully via API Key: {}", clientDto.getCompanyName());
+                });
+
+            } catch (BadCredentialsException ex) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("{\"error\": \"" + ex.getMessage() + "\"}");
+                return;
+            } catch (Exception ex) {
+                log.error("Authentication filter error: ", ex);
             }
         }
 

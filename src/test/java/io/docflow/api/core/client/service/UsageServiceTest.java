@@ -1,5 +1,6 @@
 package io.docflow.api.core.client.service;
 
+import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.client.entity.UsageRecord;
 import io.docflow.api.core.client.repository.ApiClientRepository;
@@ -30,12 +31,12 @@ class UsageServiceTest {
     @DisplayName("Atomik kota düşümü 0 dönerse QuotaExceededException fırlatmalı")
     void shouldThrowExceptionWhenQuotaIsFull() {
         UUID clientId = UUID.randomUUID();
-        ApiClient client = ApiClient.builder().id(clientId).build();
+        ApiClientDto clientDto = ApiClientDto.builder().id(clientId).build();
 
         when(apiClientRepository.decrementRemainingQuota(clientId)).thenReturn(0);
 
         assertThrows(QuotaExceededException.class, () ->
-                usageService.checkAndReturnRemaining(client));
+                usageService.checkAndReturnRemaining(clientDto));
 
         verify(apiClientRepository, times(1)).decrementRemainingQuota(any());
         verify(usageRecordRepository, never()).save(any());
@@ -45,7 +46,7 @@ class UsageServiceTest {
     @DisplayName("Kota müsaitse hem aylık kaydı hem de ana kotayı güncellemeli")
     void shouldIncrementCountWhenQuotaIsAvailable() {
         UUID clientId = UUID.randomUUID();
-        ApiClient client = ApiClient.builder()
+        ApiClientDto clientDto = ApiClientDto.builder()
                 .id(clientId)
                 .monthlyQuota(100)
                 .remainingQuota(10)
@@ -58,7 +59,7 @@ class UsageServiceTest {
         when(usageRecordRepository.findByClientAndUsageMonth(any(), any()))
                 .thenReturn(Optional.of(record));
 
-        int remaining = usageService.checkAndReturnRemaining(client);
+        int remaining = usageService.checkAndReturnRemaining(clientDto);
 
         assertEquals(9, remaining);
         verify(apiClientRepository, times(1)).decrementRemainingQuota(clientId);
