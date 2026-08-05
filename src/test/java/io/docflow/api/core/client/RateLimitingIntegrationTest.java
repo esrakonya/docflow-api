@@ -42,6 +42,8 @@ class RateLimitingIntegrationTest extends BaseIntegrationTest {
                         .companyName(client.getCompanyName())
                         .status(ClientStatus.ACTIVE)
                         .remainingQuota(100)
+                        .monthlyQuota(100)
+                        .planTier("free")
                         .build()));
 
 
@@ -49,7 +51,7 @@ class RateLimitingIntegrationTest extends BaseIntegrationTest {
                 .doNothing()
                 .doNothing()
                 .doThrow(new RateLimitExceededException("Rate limit exceeded"))
-                .when(rateLimitingService).checkRateLimit(any(ApiClient.class));
+                .when(rateLimitingService).checkRateLimit(any(ApiClientDto.class));
 
         byte[] pdfBytes = "%PDF-1.5\n%test".getBytes();
 

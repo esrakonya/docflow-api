@@ -1,5 +1,6 @@
 package io.docflow.api.core.client.service;
 
+import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.client.entity.UsageRecord;
 import io.docflow.api.core.client.repository.ApiClientRepository;
@@ -20,31 +21,33 @@ public class UsageService {
     private final ApiClientRepository apiClientRepository;
 
     @Transactional
-    public int checkAndReturnRemaining(ApiClient client) {
-        int updatedRows = apiClientRepository.decrementRemainingQuota(client.getId());
+    public int checkAndReturnRemaining(ApiClientDto clientDto) {
+        int updatedRows = apiClientRepository.decrementRemainingQuota(clientDto.getId());
 
         if (updatedRows == 0) {
             throw new QuotaExceededException("Insufficient quota! All limits have been exceeded, including concurrent requests.");
         }
 
+        ApiClient clientEntity = apiClientRepository.getReferenceById(clientDto.getId());
+
         String currentMonth = LocalDate.now().toString().substring(0, 7);
 
-        UsageRecord usageRecord =usageRecordRepository.findByClientAndUsageMonth(client, currentMonth)
+        UsageRecord usageRecord =usageRecordRepository.findByClientAndUsageMonth(clientEntity, currentMonth)
                 .orElse(UsageRecord.builder()
-                        .client(client)
+                        .client(clientEntity)
                         .usageMonth(currentMonth)
                         .requestCount(0)
                         .build());
 
-        if (usageRecord.getRequestCount() >= client.getMonthlyQuota()) {
+        if (usageRecord.getRequestCount() >= clientDto.getMonthlyQuota()) {
             throw new QuotaExceededException("Quota exceeded for this month");
         }
 
         usageRecord.setRequestCount(usageRecord.getRequestCount() + 1);
         usageRecordRepository.save(usageRecord);
 
-        client.setRemainingQuota(client.getRemainingQuota() - 1);
+        clientDto.setRemainingQuota(clientDto.getRemainingQuota() - 1);
 
-        return client.getRemainingQuota();
+        return clientDto.getRemainingQuota();
     }
 }

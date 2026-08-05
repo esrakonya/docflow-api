@@ -54,7 +54,9 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
                 .apiKeyHash(HashUtils.sha256(apiKey))
                 .status(ClientStatus.ACTIVE)
                 .remainingQuota(100)
-                .planTier("pro").monthlyQuota(1000).build());
+                .planTier("pro")
+                .monthlyQuota(1000)
+                .build());
 
         when(clientCacheService.getClientByApiKey(apiKey))
                 .thenReturn(Optional.of(ApiClientDto.builder()
@@ -62,6 +64,8 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
                         .companyName(client.getCompanyName())
                         .status(ClientStatus.ACTIVE)
                         .remainingQuota(100)
+                        .monthlyQuota(1000)
+                        .planTier("pro")
                         .build()));
 
         doNothing().when(rateLimitingService).checkRateLimit(any());

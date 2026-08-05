@@ -1,5 +1,6 @@
 package io.docflow.api.core.document.controller;
 
+import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.client.service.RateLimitingService;
 import io.docflow.api.core.client.service.UsageService;
@@ -45,7 +46,7 @@ public class DocumentController {
             @RequestParam("file")MultipartFile file,
             @RequestParam(value = "callbackUrl", required = false) String callbackUrl
     ) {
-        ApiClient currentClient = getCurrentClient();
+        ApiClientDto currentClient = getCurrentClient();
 
         rateLimitingService.checkRateLimit(currentClient);
         fileValidator.validate(file);
@@ -63,7 +64,7 @@ public class DocumentController {
             @RequestParam("files") List<MultipartFile> files,
             @RequestParam(value = "callbackUrl", required = false) String callbackUrl
     ) {
-        ApiClient currentClient = getCurrentClient();
+        ApiClientDto currentClient = getCurrentClient();
 
         rateLimitingService.checkRateLimit(currentClient);
         files.forEach(fileValidator::validate);
@@ -97,8 +98,8 @@ public class DocumentController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    private ApiClient getCurrentClient() {
-        return (ApiClient) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    private ApiClientDto getCurrentClient() {
+        return (ApiClientDto) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 
     public record DocumentResponse(UUID id, String status) {}

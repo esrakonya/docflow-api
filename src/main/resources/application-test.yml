@@ -1,9 +1,23 @@
-spring:
-  kafka:
-    producer:
-      properties:
-        interceptor.classes: ""
+ADMIN_USERNAME: test-admin
+ADMIN_PASSWORD: test-password123
+STORAGE_TYPE: minio
+MINIO_ENDPOINT: http://localhost:9000
+MINIO_ACCESS_KEY: test-key
+MINIO_SECRET_KEY: test-secret
+MINIO_BUCKET: test-bucket
+DB_URL: jdbc:postgresql://localhost:5432/docflow_db
+DB_USERNAME: user
+DB_PASSWORD: password
+KAFKA_BOOTSTRAP_SERVERS: localhost:9092
+REDIS_HOST: localhost
+REDIS_PORT: 6379
+JWT_SECRET: dGVzdC1zZWNyZXQta2V5LWF0LWxlYXN0LTMyLWJ5dGVzLWxvbmctZm9yLWhtYWMtc2hh
+AI_PROVIDER: anthropic
+GEMINI_API_KEY: dummy
+ANTHROPIC_API_KEY: dummy
 
+
+spring:
   data:
     redis:
       repositories:
@@ -12,28 +26,21 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
-
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
+  kafka:
+    producer:
+      observation-enabled: false
+      properties:
+        interceptor.classes: ""
+    consumer:
+      observation-enabled: false
 
 management:
   tracing:
     enabled: false
   zipkin:
     tracing:
-      export:
-        enabled: false
-  endpoints:
-    enabled-by-default: false
-
-docflow:
-  security:
-    jwt:
-      secret: dGVzdC1zZWNyZXQta2V5LWF0LWxlYXN0LTMyLWJ5dGVzLWxvbmctZm9yLWhtYWMtc2hh
-
-app:
-  admin:
-    username: test-admin
-    password: test-password123
+      endpoint: ""

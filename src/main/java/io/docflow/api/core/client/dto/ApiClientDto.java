@@ -22,4 +22,6 @@ public class ApiClientDto implements Serializable {
     private String apiKeyHash;
     private ClientStatus status;
     private Integer remainingQuota;
+    private Integer monthlyQuota;
+    private String planTier;
 }

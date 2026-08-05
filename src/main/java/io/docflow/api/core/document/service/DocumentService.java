@@ -2,7 +2,9 @@ package io.docflow.api.core.document.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
+import io.docflow.api.core.client.repository.ApiClientRepository;
 import io.docflow.api.core.client.service.UsageService;
 import io.docflow.api.core.common.entity.OutboxMessage;
 import io.docflow.api.core.common.repository.OutboxRepository;
@@ -14,6 +16,7 @@ import io.docflow.api.core.storage.service.StorageService;
 import io.docflow.api.infrastructure.util.FileSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -33,6 +36,7 @@ import java.util.UUID;
 public class DocumentService {
 
     private final DocumentRepository documentRepository;
+    private final ApiClientRepository apiClientRepository;
     private final OutboxRepository outboxRepository;
     private final StorageService storageService;
     private final ObjectMapper objectMapper;
@@ -40,32 +44,28 @@ public class DocumentService {
 
     public Document getById(UUID id) {
         return documentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Document not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Document", "id" + id));
     }
 
     public Document getByIdWithClient(UUID id) {
         return documentRepository.findByIdWithClient(id)
-                .orElseThrow(() -> new RuntimeException("Document not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Document", "id" + id));
     }
 
-    public Page<Document> findAllByClient(ApiClient client, Pageable pageable) {
-        return documentRepository.findAllByClient(client, pageable);
+    public Page<Document> findAllByClient(ApiClientDto clientDto, Pageable pageable) {
+        ApiClient clientEntity = apiClientRepository.getReferenceById(clientDto.getId());
+        return documentRepository.findAllByClient(clientEntity, pageable);
     }
 
-    public Optional<Document> findByIdAndClient(UUID id, ApiClient client) {
-        return documentRepository.findByIdAndClient(id, client);
-    }
-
-    @Transactional
-    public void updateStatus(UUID id, DocumentStatus status) {
-        Document doc = getById(id);
-        doc.setStatus(status);
-        documentRepository.save(doc);
+    public Optional<Document> findByIdAndClient(UUID id, ApiClientDto clientDto) {
+        ApiClient clientEntity = apiClientRepository.getReferenceById(clientDto.getId());
+        return documentRepository.findByIdAndClient(id, clientEntity);
     }
 
     @Transactional
     public void markAsProcessed(UUID id, OffsetDateTime processedAt) {
-        Document doc = getById(id);
+        Document doc = documentRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("Document not found: " + id));
         doc.setStatus(DocumentStatus.PROCESSED);
         doc.setProcessedAt(processedAt);
         documentRepository.save(doc);
@@ -79,8 +79,10 @@ public class DocumentService {
     }
 
     @Transactional
-    public Document uploadSingle(MultipartFile file, String callbackUrl, ApiClient client) {
-        usageService.checkAndReturnRemaining(client);
+    public Document uploadSingle(MultipartFile file, String callbackUrl, ApiClientDto clientDto) {
+        usageService.checkAndReturnRemaining(clientDto);
+
+        ApiClient clientEntity = apiClientRepository.getReferenceById(clientDto.getId());
 
         String safeFilename = FileSanitizer.sanitize(file.getOriginalFilename());
         String storagePath = storageService.store(file);
@@ -90,7 +92,7 @@ public class DocumentService {
                 .storagePath(storagePath)
                 .status(DocumentStatus.PENDING)
                 .uploadedAt(OffsetDateTime.now())
-                .client(client)
+                .client(clientEntity)
                 .callbackUrl(callbackUrl)
                 .build();
         Document savedDoc = documentRepository.save(doc);
@@ -101,13 +103,21 @@ public class DocumentService {
     }
 
     @Transactional
-    public List<Document> uploadBatch(List<MultipartFile> files, String callbackUrl, ApiClient client) {
+    public List<Document> uploadBatch(List<MultipartFile> files, String callbackUrl, ApiClientDto clientDto) {
         List<Document> savedDocuments = new ArrayList<>();
 
         for (MultipartFile file : files) {
-            savedDocuments.add(uploadSingle(file, callbackUrl, client));
+            savedDocuments.add(uploadSingle(file, callbackUrl, clientDto));
         }
         return savedDocuments;
+    }
+
+    @Transactional
+    public void updateStatus(UUID id, DocumentStatus status) {
+        Document doc = documentRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("Document not found: " + id));
+        doc.setStatus(status);
+        documentRepository.save(doc);
     }
 
     private void saveToOutbox(Document doc, String storagePath, String contentType) {
