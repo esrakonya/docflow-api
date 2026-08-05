@@ -5,10 +5,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@Import(TestcontainersConfiguration.class)
-@SpringBootTest
-@EnableScheduling
-class DocflowApiApplicationTests {
+
+class DocflowApiApplicationTests extends BaseIntegrationTest {
 
 	@Test
 	void contextLoads() {
