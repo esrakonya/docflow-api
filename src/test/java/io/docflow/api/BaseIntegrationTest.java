@@ -17,6 +17,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import software.amazon.awssdk.services.s3.S3Client;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -34,4 +35,5 @@ public abstract class BaseIntegrationTest {
     @MockitoBean protected RedisTemplate<String, Object> redisTemplate;
     @MockitoBean protected RedisConnectionFactory redisConnectionFactory;
     @MockitoBean protected RateLimitingService rateLimitingService;
+    @MockitoBean protected S3Client s3Client;
 }
