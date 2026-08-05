@@ -27,7 +27,12 @@ jobs:
           ADMIN_PASSWORD: test-password123
           JWT_SECRET: dGVzdC1zZWNyZXQta2V5LWF0LWxlYXN0LTMyLWJ5dGVzLWxvbmctZm9yLWhtYWMtc2hh
 
-          STORAGE_TYPE: minio
+          MINIO_ENDPOINT: http://localhost:9000
+          MINIO_ACCESS_KEY: dummy
+          MINIO_SECRET_KEY: dummy
+          MINIO_BUCKET: test-bucket
+
+          STORAGE_TYPE: local
           DB_URL: jdbc:postgresql://localhost:5432/test
           DB_USERNAME: user
           DB_PASSWORD: password

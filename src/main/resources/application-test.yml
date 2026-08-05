@@ -1,6 +1,6 @@
 ADMIN_USERNAME: test-admin
 ADMIN_PASSWORD: test-password123
-STORAGE_TYPE: minio
+STORAGE_TYPE: local
 MINIO_ENDPOINT: http://localhost:9000
 MINIO_ACCESS_KEY: test-key
 MINIO_SECRET_KEY: test-secret
@@ -37,6 +37,14 @@ spring:
         interceptor.classes: ""
     consumer:
       observation-enabled: false
+
+storage:
+  type: ${STORAGE_TYPE}
+  minio:
+    endpoint: ${MINIO_ENDPOINT}
+    access-key: ${MINIO_ACCESS_KEY}
+    secret-key: ${MINIO_SECRET_KEY}
+    bucket-name: ${MINIO_BUCKET}
 
 management:
   tracing:
