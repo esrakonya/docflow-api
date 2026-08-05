@@ -1,21 +1,8 @@
 ADMIN_USERNAME: test-admin
 ADMIN_PASSWORD: test-password123
-STORAGE_TYPE: local
-MINIO_ENDPOINT: http://localhost:9000
-MINIO_ACCESS_KEY: test-key
-MINIO_SECRET_KEY: test-secret
-MINIO_BUCKET: test-bucket
-DB_URL: jdbc:postgresql://localhost:5432/docflow_db
-DB_USERNAME: user
-DB_PASSWORD: password
-KAFKA_BOOTSTRAP_SERVERS: localhost:9092
-REDIS_HOST: localhost
-REDIS_PORT: 6379
 JWT_SECRET: dGVzdC1zZWNyZXQta2V5LWF0LWxlYXN0LTMyLWJ5dGVzLWxvbmctZm9yLWhtYWMtc2hh
+STORAGE_TYPE: local
 AI_PROVIDER: anthropic
-GEMINI_API_KEY: dummy
-ANTHROPIC_API_KEY: dummy
-
 
 spring:
   data:
@@ -29,22 +16,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: false
   kafka:
     producer:
       observation-enabled: false
-      properties:
-        interceptor.classes: ""
     consumer:
       observation-enabled: false
-
-storage:
-  type: ${STORAGE_TYPE}
-  minio:
-    endpoint: ${MINIO_ENDPOINT}
-    access-key: ${MINIO_ACCESS_KEY}
-    secret-key: ${MINIO_SECRET_KEY}
-    bucket-name: ${MINIO_BUCKET}
 
 management:
   tracing:

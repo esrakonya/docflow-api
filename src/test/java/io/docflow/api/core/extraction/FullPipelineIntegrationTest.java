@@ -21,6 +21,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -49,14 +52,19 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
     @DisplayName("Uçtan uca akış: Yükleme -> Kafka -> Worker -> DB kontrolü")
     void shouldProcessFullPipelineSuccessfully() throws Exception {
         String apiKey = "pipeline-test-key";
+        byte[] pdfContent = "%PDF-1.5\n%abc".getBytes();
+
+        when(s3Client.getObjectAsBytes(any(GetObjectRequest.class)))
+                .thenReturn(ResponseBytes.fromByteArray(
+                        GetObjectResponse.builder().build(),
+                        pdfContent));
+
         ApiClient client = apiClientRepository.save(ApiClient.builder()
                 .companyName("Pipeline Test Co")
                 .apiKeyHash(HashUtils.sha256(apiKey))
                 .status(ClientStatus.ACTIVE)
                 .remainingQuota(100)
-                .planTier("pro")
-                .monthlyQuota(1000)
-                .build());
+                .planTier("pro").monthlyQuota(1000).build());
 
         when(clientCacheService.getClientByApiKey(apiKey))
                 .thenReturn(Optional.of(ApiClientDto.builder()
@@ -83,8 +91,6 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
 
             return mockResult;
         }).when(extractionService).extractAndSave(any(), any(), any());
-
-        byte[] pdfContent = "%PDF-1.5\n%abc".getBytes();
 
         MockMultipartFile file = new MockMultipartFile("file", "invoice.pdf",
                 MediaType.APPLICATION_PDF_VALUE, pdfContent);

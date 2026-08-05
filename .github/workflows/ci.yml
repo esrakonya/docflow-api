@@ -1,9 +1,7 @@
-name: Java CI with Maven
+name: docFlow CI
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
     branches: [ "main" ]
 
 jobs:
@@ -12,7 +10,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -26,19 +23,7 @@ jobs:
           ADMIN_USERNAME: test-admin
           ADMIN_PASSWORD: test-password123
           JWT_SECRET: dGVzdC1zZWNyZXQta2V5LWF0LWxlYXN0LTMyLWJ5dGVzLWxvbmctZm9yLWhtYWMtc2hh
-
-          MINIO_ENDPOINT: http://localhost:9000
-          MINIO_ACCESS_KEY: dummy
-          MINIO_SECRET_KEY: dummy
-          MINIO_BUCKET: test-bucket
-
           STORAGE_TYPE: local
-          DB_URL: jdbc:postgresql://localhost:5432/test
-          DB_USERNAME: user
-          DB_PASSWORD: password
-          KAFKA_BOOTSTRAP_SERVERS: localhost:9092
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
           AI_PROVIDER: anthropic
           GEMINI_API_KEY: dummy
           ANTHROPIC_API_KEY: dummy
