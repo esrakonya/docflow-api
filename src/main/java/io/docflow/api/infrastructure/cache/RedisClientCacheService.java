@@ -55,6 +55,13 @@ public class RedisClientCacheService implements ClientCacheService {
         redisTemplate.delete(CACHE_KEY_PREFIX + HashUtils.sha256(apiKey));
     }
 
+    @Override
+    public void evictCacheByHash(String apiKeyHash) {
+        String cacheKey = CACHE_KEY_PREFIX + apiKeyHash;
+        redisTemplate.delete(cacheKey);
+        log.info("Cache evicted for API Key Hash: {}", apiKeyHash);
+    }
+
     private ApiClientDto mapToDto(ApiClient entity) {
         return ApiClientDto.builder()
                 .id(entity.getId())
