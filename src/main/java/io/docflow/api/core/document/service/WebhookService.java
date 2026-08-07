@@ -6,16 +6,23 @@ import io.docflow.api.infrastructure.exception.WebhookDeliveryException;
 import io.docflow.api.infrastructure.util.HashUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.client5.http.DnsResolver;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.URI;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -24,46 +31,37 @@ public class WebhookService {
 
     private final ObjectMapper objectMapper;
 
-    private final RestClient restClient = RestClient.builder()
-            .requestFactory(createTimeoutRequestFactory())
-            .build();
-
-    private static SimpleClientHttpRequestFactory createTimeoutRequestFactory() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(3000);
-        factory.setReadTimeout(5000);
-        return factory;
-    }
-
     public void sendCallback(String callbackUrl, String secret, DocumentWebhookEvent event) {
         if (callbackUrl == null || callbackUrl.isBlank()) {
             return;
         }
 
         try {
-            URI originalUri = new URI(callbackUrl);
+            URI uri = new URI(callbackUrl);
+            String host = uri.getHost();
 
-            InetAddress safeAddress = getSafeAddress(originalUri.getHost())
-                    .orElseThrow(() -> new RuntimeException("Unsafe or unresolvable destination: " + callbackUrl));
+            InetAddress safeAddress = getSafeAddress(host)
+                    .orElseThrow(() -> new RuntimeException("Unsafe or unresolvable destination: " + host));
 
-            URI safeUri = UriComponentsBuilder.fromUri(originalUri)
-                    .host(safeAddress.getHostAddress())
-                    .build(true)
-                    .toUri();
+            try (CloseableHttpClient httpClient = createSecureClient(host, safeAddress)) {
 
-            String jsonPayload = objectMapper.writeValueAsString(event);
-            String signature = HashUtils.hmacSha256(jsonPayload, secret);
+                RestClient secureRestClient = RestClient.builder()
+                        .requestFactory(new HttpComponentsClientHttpRequestFactory(httpClient))
+                        .build();
 
-            log.info("Sending Webhook to IP: {} (Original Host: {})", safeAddress.getHostAddress(), originalUri.getHost());
+                String jsonPayload = objectMapper.writeValueAsString(event);
+                String signature = HashUtils.hmacSha256(jsonPayload, secret);
 
-            restClient.post()
-                    .uri(safeUri)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .header("X-DocFlow-Signature", signature)
-                    .header("Host", originalUri.getHost())
-                    .body(jsonPayload)
-                    .retrieve()
-                    .toBodilessEntity();
+                log.info("Sending Secure Webhook to {} (Pinned IP: {})", host, safeAddress.getHostAddress());
+
+                secureRestClient.post()
+                        .uri(uri)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-DocFlow-Signature", signature)
+                        .body(jsonPayload)
+                        .retrieve()
+                        .toBodilessEntity();
+            }
 
             log.info("Webhook delivered successfully.");
         } catch (Exception e) {
@@ -72,10 +70,35 @@ public class WebhookService {
         }
     }
 
+    private CloseableHttpClient createSecureClient(String host, InetAddress ip) {
+        PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                .setDnsResolver(new org.apache.hc.client5.http.DnsResolver() {
+                    @Override
+                    public InetAddress[] resolve(String hostName) throws java.net.UnknownHostException {
+                        if (hostName.equalsIgnoreCase(host)) {
+                            return new InetAddress[]{ip};
+                        }
+                        return InetAddress.getAllByName(hostName);
+                    }
+
+                    @Override
+                    public String resolveCanonicalHostname(String hostName) throws java.net.UnknownHostException {
+                        return hostName;
+                    }
+                })
+                .build();
+
+        return HttpClients.custom()
+                .setConnectionManager(connectionManager)
+                .setDefaultRequestConfig(RequestConfig.custom()
+                        .setConnectTimeout(Timeout.of(3, TimeUnit.SECONDS))
+                        .setResponseTimeout(Timeout.of(5, TimeUnit.SECONDS))
+                        .build())
+                .build();
+    }
+
     private Optional<InetAddress> getSafeAddress(String host) {
         try {
-            if (host == null) return Optional.empty();
-
             InetAddress[] addresses = InetAddress.getAllByName(host);
             if (addresses.length == 0) return Optional.empty();
 

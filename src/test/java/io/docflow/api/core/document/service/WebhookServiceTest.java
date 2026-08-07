@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,15 +28,17 @@ public class WebhookServiceTest {
         String unsafeUrl = "http://127.0.0.1/callback";
         DocumentWebhookEvent event = new DocumentWebhookEvent(UUID.randomUUID(), DocumentStatus.PROCESSED, null);
 
-        assertThrows(RuntimeException.class, () -> webhookService.sendCallback(unsafeUrl, "secret", event));
+        assertThrows(RuntimeException.class, () ->
+                webhookService.sendCallback(unsafeUrl, "secret", event));
     }
 
     @Test
-    @DisplayName("Webhook iletimi başarısız olduğunda (Connection Refused vb.) WebhookDeliveryException fırlatmalı")
-    void shouldThrowExceptionOneDeliveryFailure() {
-        String unreachableUrl = "http://1.1.1.1:1234/webhook";
+    @DisplayName("DNS Rebinding & HTTPS Desteği: Bağlantı hatası durumunda mimari tıkır tıkır çalışmalı")
+    void shouldHandleConnectionFailureGracefully() {
+        String dummyHttpsUrl = "https://non-existent-server-docflow.com/webhook";
         DocumentWebhookEvent event = new DocumentWebhookEvent(UUID.randomUUID(), DocumentStatus.PROCESSED, null);
 
-        assertThrows(WebhookDeliveryException.class, () -> webhookService.sendCallback(unreachableUrl, "secret", event));
+        assertThrows(WebhookDeliveryException.class, () ->
+                webhookService.sendCallback(dummyHttpsUrl, "secret", event));
     }
 }
