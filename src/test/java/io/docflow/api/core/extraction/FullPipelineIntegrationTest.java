@@ -53,11 +53,10 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
     void shouldProcessFullPipelineSuccessfully() throws Exception {
         String apiKey = "pipeline-test-key";
         byte[] pdfContent = "%PDF-1.5\n%abc".getBytes();
+        String fakeStoragePath = "documents/test-invoice.pdf";
 
-        when(s3Client.getObjectAsBytes(any(GetObjectRequest.class)))
-                .thenReturn(ResponseBytes.fromByteArray(
-                        GetObjectResponse.builder().build(),
-                        pdfContent));
+        when(storageService.store(any())).thenReturn(fakeStoragePath);
+        when(storageService.fetch(fakeStoragePath)).thenReturn(pdfContent);
 
         ApiClient client = apiClientRepository.save(ApiClient.builder()
                 .companyName("Pipeline Test Co")
