@@ -27,6 +27,8 @@ class RateLimitingIntegrationTest extends BaseIntegrationTest {
     void shouldEnforceRateLimitOnUpload() throws Exception{
         String rawKey = "limit-test-key-123";
 
+        when(storageService.store(any())).thenReturn("uploads/test-path.pdf");
+
         ApiClient client = apiClientRepository.save(ApiClient.builder()
                 .companyName("Limit Test Co")
                 .apiKeyHash(HashUtils.sha256(rawKey))
