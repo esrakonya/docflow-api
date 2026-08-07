@@ -2,6 +2,7 @@ package io.docflow.api.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -35,6 +36,7 @@ public class S3Config {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "storage.type", havingValue = "minio")
     public CommandLineRunner createBucketIfNotExists(S3Client s3Client, @Value("${storage.minio.bucket-name}") String bucketName) {
         return args -> {
             try {
