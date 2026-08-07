@@ -5,6 +5,7 @@ import io.docflow.api.core.client.repository.UsageRecordRepository;
 import io.docflow.api.core.client.service.ClientCacheService;
 import io.docflow.api.core.client.service.RateLimitingService;
 import io.docflow.api.core.document.repository.DocumentRepository;
+import io.docflow.api.core.storage.service.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
@@ -36,4 +37,5 @@ public abstract class BaseIntegrationTest {
     @MockitoBean protected RedisConnectionFactory redisConnectionFactory;
     @MockitoBean protected RateLimitingService rateLimitingService;
     @MockitoBean protected S3Client s3Client;
+    @MockitoBean protected StorageService storageService;
 }
