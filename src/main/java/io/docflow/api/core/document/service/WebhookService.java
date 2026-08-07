@@ -99,18 +99,21 @@ public class WebhookService {
 
     private Optional<InetAddress> getSafeAddress(String host) {
         try {
+            if (host == null) return Optional.empty();
+
             InetAddress[] addresses = InetAddress.getAllByName(host);
             if (addresses.length == 0) return Optional.empty();
 
-            InetAddress target = addresses[0];
-
-            if (isBlockedAddress(target)) {
-                log.warn("SECURITY ALERT: SSRF attempt blocked for host: {} (Resolved to: {})", host, target.getHostAddress());
-                return Optional.empty();
+            for (InetAddress target : addresses) {
+                if (isBlockedAddress(target)) {
+                    log.warn("SECURITY ALERT: SSRF attempt blocked for host: {} (Resolved to: {})", host, target.getHostAddress());
+                    return Optional.empty();
+                }
             }
 
-            return Optional.of(target);
+            return Optional.of(addresses[0]);
         } catch (Exception e) {
+            log.error("DNS Resolution failed for host: {}", host);
             return Optional.empty();
         }
     }
