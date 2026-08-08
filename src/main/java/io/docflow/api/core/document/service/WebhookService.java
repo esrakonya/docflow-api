@@ -6,18 +6,23 @@ import io.docflow.api.infrastructure.exception.WebhookDeliveryException;
 import io.docflow.api.infrastructure.util.HashUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hc.client5.http.DnsResolver;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.TrustAllStrategy;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import javax.net.ssl.SSLContext;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.URI;
@@ -71,30 +76,41 @@ public class WebhookService {
     }
 
     private CloseableHttpClient createSecureClient(String host, InetAddress ip) {
-        PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-                .setDnsResolver(new org.apache.hc.client5.http.DnsResolver() {
-                    @Override
-                    public InetAddress[] resolve(String hostName) throws java.net.UnknownHostException {
-                        if (hostName.equalsIgnoreCase(host)) {
-                            return new InetAddress[]{ip};
+        try {
+            SSLContext sslContext = SSLContexts.custom()
+                    .loadTrustMaterial(TrustAllStrategy.INSTANCE)
+                    .build();
+
+            SSLConnectionSocketFactory sslSocketFactory = SSLConnectionSocketFactoryBuilder.create()
+                    .setSslContext(sslContext)
+                    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                    .build();
+
+            PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                    .setSSLSocketFactory(sslSocketFactory)
+                    .setDnsResolver(new org.apache.hc.client5.http.DnsResolver() {
+                        @Override
+                        public InetAddress[] resolve(String hostName) throws java.net.UnknownHostException {
+                            if (hostName.equalsIgnoreCase(host)) return new InetAddress[]{ip};
+                            return InetAddress.getAllByName(hostName);
                         }
-                        return InetAddress.getAllByName(hostName);
-                    }
+                        @Override
+                        public String resolveCanonicalHostname(String hostName) { return hostName; }
+                    })
+                    .build();
 
-                    @Override
-                    public String resolveCanonicalHostname(String hostName) throws java.net.UnknownHostException {
-                        return hostName;
-                    }
-                })
-                .build();
+            return HttpClients.custom()
+                    .setConnectionManager(connectionManager)
+                    .setDefaultRequestConfig(RequestConfig.custom()
+                            .setConnectTimeout(Timeout.of(3, TimeUnit.SECONDS))
+                            .setResponseTimeout(Timeout.of(5, TimeUnit.SECONDS))
+                            .build())
+                    .build();
 
-        return HttpClients.custom()
-                .setConnectionManager(connectionManager)
-                .setDefaultRequestConfig(RequestConfig.custom()
-                        .setConnectTimeout(Timeout.of(3, TimeUnit.SECONDS))
-                        .setResponseTimeout(Timeout.of(5, TimeUnit.SECONDS))
-                        .build())
-                .build();
+        } catch (Exception e) {
+            log.error("Secure HttpClient creation failed for host: {}", host, e);
+            throw new RuntimeException("Could not initialize secure network stack", e);
+        }
     }
 
     private Optional<InetAddress> getSafeAddress(String host) {
@@ -118,7 +134,7 @@ public class WebhookService {
         }
     }
 
-    private boolean isBlockedAddress(InetAddress address) {
+    protected boolean isBlockedAddress(InetAddress address) {
         return address.isLoopbackAddress() ||
                 address.isLinkLocalAddress() ||
                 address.isSiteLocalAddress() ||

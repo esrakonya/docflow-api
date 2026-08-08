@@ -37,7 +37,7 @@ public class OutboxRelay {
                 message.setProcessed(true);
                 outboxRepository.save(message);
 
-                log.info("Outbıx message successfully relayed to Kafka. ID: {}, Topic: {}", message.getId(), message.getTopic());
+                log.info("Outbox message successfully relayed to Kafka. ID: {}, Topic: {}", message.getId(), message.getTopic());
 
             } catch (Exception e) {
                 log.error("Outbox relay error! ID: {}. Error: {}", message.getId(), e.getMessage());
