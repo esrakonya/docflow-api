@@ -267,6 +267,17 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>
+						-Djavax.net.ssl.trustStore=${project.basedir}/src/test/resources/wiremock-keystore.jks
+						-Djavax.net.ssl.trustStorePassword=password
+						-Djavax.net.ssl.trustStoreType=JKS
+					</argLine>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 

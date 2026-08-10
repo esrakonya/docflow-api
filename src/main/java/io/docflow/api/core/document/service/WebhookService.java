@@ -6,26 +6,22 @@ import io.docflow.api.infrastructure.exception.WebhookDeliveryException;
 import io.docflow.api.infrastructure.util.HashUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hc.client5.http.DnsResolver;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
-import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
-import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.apache.hc.client5.http.ssl.TrustAllStrategy;
-import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
-import javax.net.ssl.SSLContext;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -75,27 +71,21 @@ public class WebhookService {
         }
     }
 
-    private CloseableHttpClient createSecureClient(String host, InetAddress ip) {
+    protected CloseableHttpClient createSecureClient(String host, InetAddress ip) {
         try {
-            SSLContext sslContext = SSLContexts.custom()
-                    .loadTrustMaterial(TrustAllStrategy.INSTANCE)
-                    .build();
-
-            SSLConnectionSocketFactory sslSocketFactory = SSLConnectionSocketFactoryBuilder.create()
-                    .setSslContext(sslContext)
-                    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                    .build();
-
-            PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-                    .setSSLSocketFactory(sslSocketFactory)
-                    .setDnsResolver(new org.apache.hc.client5.http.DnsResolver() {
+            var connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                    .setSSLSocketFactory(SSLConnectionSocketFactoryBuilder.create().build())
+                    .setDnsResolver(new DnsResolver() {
                         @Override
-                        public InetAddress[] resolve(String hostName) throws java.net.UnknownHostException {
+                        public InetAddress[] resolve(String hostName) throws UnknownHostException {
                             if (hostName.equalsIgnoreCase(host)) return new InetAddress[]{ip};
                             return InetAddress.getAllByName(hostName);
                         }
+
                         @Override
-                        public String resolveCanonicalHostname(String hostName) { return hostName; }
+                        public String resolveCanonicalHostname(String hostName) throws UnknownHostException {
+                            return hostName;
+                        }
                     })
                     .build();
 
@@ -115,16 +105,9 @@ public class WebhookService {
 
     private Optional<InetAddress> getSafeAddress(String host) {
         try {
-            if (host == null) return Optional.empty();
-
             InetAddress[] addresses = InetAddress.getAllByName(host);
-            if (addresses.length == 0) return Optional.empty();
-
-            for (InetAddress target : addresses) {
-                if (isBlockedAddress(target)) {
-                    log.warn("SECURITY ALERT: SSRF attempt blocked for host: {} (Resolved to: {})", host, target.getHostAddress());
-                    return Optional.empty();
-                }
+            for (InetAddress addr : addresses) {
+                if (isBlockedAddress(addr)) return Optional.empty();
             }
 
             return Optional.of(addresses[0]);
