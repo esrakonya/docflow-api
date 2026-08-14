@@ -20,8 +20,8 @@ public class AiProviderConfig {
             case "anthropic", "claude" -> ChatClient.create(anthropicChatModel);
             case "gemini", "google" -> ChatClient.create(googleGenAiChatModel);
             default -> throw new IllegalArgumentException(
-                    "Bilinmeyen docflow.ai.provider değeri: '" + provider
-                            + "'. Geçerli değerler: 'anthropic', 'gemini'.");
+                    "Unknown docflow.ai.provider value: '" + provider
+                            + "'. Valid values are: 'anthropic', 'gemini'.");
         };
     }
 }

@@ -7,8 +7,12 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for JWT (JSON Web Token) operations.
+ * Validates token generation, cryptographic signature verification,
+ * subject extraction, and expiration logic for Admin authentication.
+ */
 public class JwtServiceTest {
-
     private JwtService jwtService;
     private JwtProperties properties;
 
@@ -21,7 +25,7 @@ public class JwtServiceTest {
     }
 
     @Test
-    @DisplayName("Geçerli bir kullanıcı adı için token üretmeli ve doğruyabilmeli")
+    @DisplayName("Should generate and validate token for a valid username")
     void shouldGenerateAndValidateToken() {
         String username = "admin";
         String token = jwtService.generateToken(username);

@@ -19,12 +19,15 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
+/**
+ * Security-focused integration tests for Document access.
+ * Specifically validates IDOR (Insecure Direct Object Reference) protection,
+ * ensuring Client A cannot access Client B's private documents.
+ */
 @AutoConfigureMockMvc
 public class DocumentIntegrationTest extends BaseIntegrationTest {
-
     @Test
-    @DisplayName("Müşteri A, Müşteri B'ye ait döküman ID'si ile sorgu attığında 404 almalıdır")
+    @DisplayName("Should return 404 when Client A attempts to access Client B's document (IDOR protection)")
     void shouldPreventIDORAccess() throws Exception {
         // Create a client A
         String rawKeyA = "key-a-789";

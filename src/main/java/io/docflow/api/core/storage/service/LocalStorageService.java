@@ -31,27 +31,26 @@ public class LocalStorageService implements StorageService {
         String fileName = UUID.randomUUID() + "_" + sanitizedOriginalName;
 
         if (fileName!= null && fileName.contains("..")) {
-            log.error("Güvenlik Riski: Dosya isminde '..' tespit edildi! -> {}", fileName);
-            throw new RuntimeException("Geçersiz dosya ismi! Path traversal girişimi engellendi.");
+            log.error("Security Risk: '..' detected in filename! -> {}", fileName);
+            throw new RuntimeException("Invalid file name! Path traversal attempt blocked.");
         }
 
         try {
             Path root = Paths.get(uploadDir);
             if (!Files.exists(root)) {
                 Files.createDirectories(root);
-                log.info("Yükleme klasörü oluşturuldu: {}", root.toAbsolutePath());
+                log.info("Upload directory created at: {}", root.toAbsolutePath());
             }
 
             Path destination = root.resolve(fileName);
-
             Files.copy(file.getInputStream(), destination);
 
-            log.info("Dosya başarıyla kaydedildi: {}", destination);
-            return destination.toString();
+            log.info("File stored successfully at: {}", destination);
+            return fileName;
 
         } catch (IOException e) {
-            log.error("Dosya depolama hatası!", e);
-            throw new RuntimeException("Dosya kaydedilemedi: " + e.getMessage());
+            log.error("File storage error!", e);
+            throw new RuntimeException("Could not store file: " + e.getMessage());
         }
     }
 
@@ -60,7 +59,8 @@ public class LocalStorageService implements StorageService {
         try {
             return Files.readAllBytes(Paths.get(uploadDir).resolve(key));
         } catch (IOException e) {
-            throw new RuntimeException("Dosya yerel diskten okunamadı!");
+            log.error("Could not read file from local storage: {}", key);
+            throw new RuntimeException("File could not be read from local storage!");
         }
     }
 
@@ -72,38 +72,37 @@ public class LocalStorageService implements StorageService {
             boolean deleted = Files.deleteIfExists(filePath);
 
             if (deleted) {
-                log.info("Dosya yerel diskten başarıyla silindi: {}", key);
+                log.info("File deleted successfully from local storage: {}", key);
             } else {
-                log.warn("Silinmek istenen dosya yerel diskte bulunamadı: {}", key);
+                log.warn("File to delete not found in local storage: {}", key);
             }
         } catch (IOException e) {
-            log.error("Dosya yerel diskten silinirken hata oluştu: {}", key, e);
+            log.error("Error occurred while deleting file from local storage: {}", key, e);
         }
     }
 
     @Override
-    public void cleanup(int days) {
+    public int cleanup(int days) {
        Path root = Paths.get(uploadDir);
-       if (!Files.exists(root)) return;
+       if (!Files.exists(root)) return 0;
 
        Instant threshold = Instant.now().minus(days, ChronoUnit.DAYS);
-       log.info("Starting local storage cleanup for files older than {} days (Threshold: {})", days, threshold);
+       int deletedCount = 0;
 
        try (DirectoryStream<Path> stream = Files.newDirectoryStream(root)) {
-           int deletedCount = 0;
            for (Path file : stream) {
                Instant lastModified = Files.getLastModifiedTime(file).toInstant();
-
                if (lastModified.isBefore(threshold)) {
                    Files.delete(file);
                    deletedCount++;
                    log.debug("Deleted old local file: {}", file.getFileName());
                }
            }
-           log.info("Local cleanup finished. Total deleted files: {}", deletedCount);
+           log.info("Local storage cleanup finished. Deleted {} files.", deletedCount);
        } catch (IOException e) {
            log.error("Error occurred during local file cleanup", e);
        }
+       return deletedCount;
     }
 
 }

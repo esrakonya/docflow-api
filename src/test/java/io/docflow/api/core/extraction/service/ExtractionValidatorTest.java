@@ -11,38 +11,42 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the AI Data Validation logic.
+ * Ensures the consistency of LLM-extracted invoice data, checking for
+ * mathematical accuracy (sum of items vs total) and confidence score thresholds.
+ */
 public class ExtractionValidatorTest {
-
     private final ExtractionValidator validator = new ExtractionValidator();
 
     @Test
-    @DisplayName("Tüm veriler tutarlı olduğunda geçerli sayılmalı")
+    @DisplayName("Should return valid when all extracted data is consistent")
     void shouldReturnValidWhenEverythingMatches() {
         var data = new ExtractedInvoiceData(
-                "Aydın Ofis",
+                "Global Office Supplies",
                 "INV-001",
                 LocalDate.now(),
                 LocalDate.now(),
-                "TRY",
+                "USD",
                 new BigDecimal("100.00"),
                 new BigDecimal("18.00"),
-                List.of(new ExtractedInvoiceData.LineItem("Kalem", BigDecimal.ONE, new BigDecimal("82.00"), new BigDecimal("82.00"))),
+                List.of(new ExtractedInvoiceData.LineItem("Office Pen", BigDecimal.ONE, new BigDecimal("82.00"), new BigDecimal("82.00"))),
                 new BigDecimal("0.95")
         );
 
         var result = validator.validate(data);
-        assertTrue(result.isValid());
+        assertTrue(result.isValid(), "Validation should pass for consistent invoice data.");
     }
 
     @Test
-    @DisplayName("Güven skoru eşik değerinin altındaysa uyarı vermeli")
+    @DisplayName("Should return warning when confidence score is below threshold")
     void shouldReturnWarningWhenConfidenceIsLow() {
         var data = new ExtractedInvoiceData(
-                "Aydın Ofis",
+                "Global Office Supplies",
                 "INV-001",
                 LocalDate.now(),
                 LocalDate.now(),
-                "TRY",
+                "USD",
                 new BigDecimal("100.00"),
                 BigDecimal.ZERO,
                 List.of(),
@@ -51,18 +55,18 @@ public class ExtractionValidatorTest {
 
         var result = validator.validate(data);
         assertFalse(result.isValid());
-        assertTrue(result.warnings().get(0).contains("Düşük güven skoru"));
+        assertTrue(result.warnings().get(0).contains("Low confidence score"));
     }
 
     @Test
-    @DisplayName("Matematiksel tutarsızlık olduğunda uyarı vermeli")
+    @DisplayName("Should return warning on mathematical inconsistency between total and items")
     void shouldReturnWarningWhenMathMismatch() {
         var data = new ExtractedInvoiceData(
                 "Market",
                 "123",
                 LocalDate.now(),
                 LocalDate.now(),
-                "TRY",
+                "USD",
                 new BigDecimal("150.00"),
                 BigDecimal.ZERO,
                 List.of(new ExtractedInvoiceData.LineItem(
@@ -76,6 +80,6 @@ public class ExtractionValidatorTest {
 
         var result = validator.validate(data);
         assertFalse(result.isValid());
-        assertTrue(result.warnings().stream().anyMatch(w -> w.contains("Matematiksel tutarsızlık!")));
+        assertTrue(result.warnings().stream().anyMatch(w -> w.contains("Mathematical inconsistency!")));
     }
 }

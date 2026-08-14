@@ -18,11 +18,11 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        log.info("Login denemesi yapılıyor: {}", username);
+        log.info("Login attempt for user: {}", username);
 
         return adminUserRepository.findByUserName(username)
                 .map(admin -> {
-                    log.info("Kullanıcı DB'de bulundu {}. Rolü: {}", admin.getUserName(), admin.getRole());
+                    log.info("User found in DB {}. Role: {}", admin.getUserName(), admin.getRole());
                     return User.builder()
                             .username(admin.getUserName())
                             .password(admin.getPassword())
@@ -30,8 +30,8 @@ public class CustomUserDetailsService implements UserDetailsService {
                             .build();
                 })
                 .orElseThrow(() -> {
-                    log.error("Kullanıcı DB'de BULUNAMADI: {}", username);
-                    return new UsernameNotFoundException("Admin not found: " + username);
+                    log.error("User NOT FOUND in DB: {}", username);
+                    return new UsernameNotFoundException("Admin user not found: " + username);
                 });
     }
 }

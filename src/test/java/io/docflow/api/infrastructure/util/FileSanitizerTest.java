@@ -6,25 +6,30 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Security and utility tests for Filename Sanitization.
+ * Checks for Path Traversal attack prevention, character normalization,
+ * and length enforcement for different operating systems.
+ */
 public class FileSanitizerTest {
 
     @Test
-    @DisplayName("Karmaşık dosya isimlerini başarıyla temizlemeli")
+    @DisplayName("Should successfully sanitize complex and non-ASCII filenames")
     void shouldSanitizeComplexFileName() {
-        String input = "fatura_şubat_2026! @#$.png";
+        String input = "invoice_february_2026! @#$.png";
         String result = FileSanitizer.sanitize(input);
-        assertEquals("fatura_subat_2026_____.png", result);
+        assertEquals("invoice_february_2026_____.png", result);
     }
 
     @Test
-    @DisplayName("Path traversal girişimlerini engellemeli")
+    @DisplayName("Should prevent and throw exception on Path Traversal filenames")
     void shouldThrowExceptionOnPathTraversal() {
         assertThrows(InvalidRequestException.class, () ->
                 FileSanitizer.sanitize("../../../etc/passwd"));
     }
 
     @Test
-    @DisplayName("Çok uzun dosya isimlerini sondan kırpmalı")
+    @DisplayName("Should truncate extremely long filenames while preserving extension")
     void shouldTruncateLongFileNames() {
         String longName = "a".repeat(150) + ".pdf";
         String result = FileSanitizer.sanitize(longName);

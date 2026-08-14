@@ -20,17 +20,22 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Integration tests for the Rate Limiting mechanism.
+ * Validates that the system correctly identifies and blocks excessive requests
+ * within a specific time window, returning HTTP 429 (Too Many Requests).
+ */
 @AutoConfigureMockMvc
 class RateLimitingIntegrationTest extends BaseIntegrationTest {
     @Test
-    @DisplayName("Dakikada izin verilenden fazla istek atıldığında 429 Too Many Requests dönmeli")
+    @DisplayName("Should return 429 Too Many Requests when rate limit is exceeded")
     void shouldEnforceRateLimitOnUpload() throws Exception{
         String rawKey = "limit-test-key-123";
 
         when(storageService.store(any())).thenReturn("uploads/test-path.pdf");
 
         ApiClient client = apiClientRepository.save(ApiClient.builder()
-                .companyName("Limit Test Co")
+                .companyName("Limit Test Corporation")
                 .apiKeyHash(HashUtils.sha256(rawKey))
                 .status(ClientStatus.ACTIVE)
                 .planTier("free")

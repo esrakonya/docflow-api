@@ -21,6 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for the Outbox Pattern implementation.
+ * Verifies that pending messages in the database are correctly read,
+ * serialized, dispatched to Kafka, and marked as processed atomically.
+ */
 @ExtendWith(MockitoExtension.class)
 public class OutboxRelayTest {
     @Mock private OutboxRepository outboxRepository;
@@ -29,7 +34,7 @@ public class OutboxRelayTest {
     @InjectMocks private OutboxRelay outboxRelay;
 
     @Test
-    @DisplayName("İşlenmemiş mesajları Kafka'ya basmalı ve processed=true yapmalı")
+    @DisplayName("Should relay pending messages to Kafka and set processed=true")
     void shouldRelayPendingMessages() throws Exception {
         UUID messageId = UUID.randomUUID();
         OutboxMessage message = OutboxMessage.builder()
@@ -50,7 +55,7 @@ public class OutboxRelayTest {
         outboxRelay.relayMessages();
 
         verify(kafkaTemplate, times(1)).send(eq("document-uploaded"), any());
-        assertTrue(message.isProcessed(), "Mesaj processed=true olarak işaretlenmeliydi!");
+        assertTrue(message.isProcessed(), "Outbox message should be marked as processed after a successful relay!");
         verify(outboxRepository, times(1)).save(message);
     }
 }

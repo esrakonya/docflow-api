@@ -30,10 +30,10 @@ public class S3StorageService implements StorageService {
     @Override
     public String store(MultipartFile file) {
         String sanitizedOriginalName = FileSanitizer.sanitize(file.getOriginalFilename());
-
         String fileName = UUID.randomUUID() + "_" + sanitizedOriginalName;
-        if (fileName != null && fileName.contains("..")) {
-            throw new RuntimeException("Geçersiz dosya ismi!");
+
+        if (fileName.contains("..")) {
+            throw new RuntimeException("Invalid file name detected!");
         }
 
         try {
@@ -44,9 +44,11 @@ public class S3StorageService implements StorageService {
                     .build(),
                     RequestBody.fromBytes(file.getBytes()));
 
+            log.info("File uploaded to S3/MinIO: {}", fileName);
             return fileName;
         } catch (Exception e) {
-            throw new RuntimeException("MinIO/S3 yükleme hatası!", e);
+            log.error("S3/MinIO upload error for file: {}", fileName, e);
+            throw new RuntimeException("Could not upload file to S3/MinIO!", e);
         }
     }
 
@@ -58,7 +60,8 @@ public class S3StorageService implements StorageService {
                     .key(key)
                     .build()).asByteArray();
         } catch (Exception e) {
-            throw new RuntimeException("Dosya MinIO'dan çekilemedi!", e);
+            log.error("Could not fetch file from S3/MinIO: {}", key);
+            throw new RuntimeException("File could not be fetched from storage!", e);
         }
     }
 
@@ -69,31 +72,31 @@ public class S3StorageService implements StorageService {
                     .bucket(bucketName)
                     .key(key)
                     .build());
-            log.info("Dosya MinIO'dan başarıyla silindi: {}", key);
+            log.info("File deleted successfully from S3/MinIO: {}", key);
         } catch (Exception e) {
-            log.error("MinIO dosya silme hatası: {}", key, e);
+            log.error("Error deleting file from S3/MinIO: {}", key, e);
         }
     }
 
     @Override
-    public void cleanup(int days) {
+    public int cleanup(int days) {
         Instant threshold = Instant.now().minus(days, ChronoUnit.DAYS);
-        log.info("Starting MinIO storage cleanup for files order than {} days (Threshold: {})", days, threshold);
+        int deletedCount = 0;
 
         try {
             ListObjectsV2Response listResponse = s3Client.listObjectsV2(r -> r.bucket(bucketName));
 
-            int deletedCount = 0;
             for (S3Object s3Object : listResponse.contents()) {
                 if (s3Object.lastModified().isBefore(threshold)) {
                     s3Client.deleteObject(r -> r.bucket(bucketName).key(s3Object.key()));
                     deletedCount++;
-                    log.debug("Deleted old MinIO object: {}", s3Object.key());
+                    log.debug("Deleted old S3 object: {}", s3Object.key());
                 }
             }
-            log.info("MinIO cleanup finished. Total deleted objects: {}", deletedCount);
+            log.info("S3/MinIO cleanup finished. Total deleted objects: {}", deletedCount);
         } catch (Exception e) {
             log.error("Error occurred during MinIO cleanup", e);
         }
+        return deletedCount;
     }
 }

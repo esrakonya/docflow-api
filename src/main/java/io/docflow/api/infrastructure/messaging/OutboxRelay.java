@@ -29,6 +29,12 @@ public class OutboxRelay {
     public void relayMessages() {
         List<OutboxMessage> pendingMessages = outboxRepository.findTop100PendingMessages();
 
+        if (pendingMessages.isEmpty()) {
+            return;
+        }
+
+        log.debug("Processing {} outbox messages...", pendingMessages.size());
+
         for (OutboxMessage message : pendingMessages) {
             try {
                 DocumentUploadedEvent event = objectMapper.readValue(message.getPayload(), DocumentUploadedEvent.class);
@@ -41,7 +47,6 @@ public class OutboxRelay {
 
             } catch (Exception e) {
                 log.error("Outbox relay error! ID: {}. Error: {}", message.getId(), e.getMessage());
-                break;
             }
         }
 

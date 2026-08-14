@@ -27,6 +27,11 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
+/**
+ * Advanced security and delivery tests for Webhooks.
+ * Covers HMAC signature generation, SSRF protection via DNS Pinning,
+ * network isolation, and end-to-end TLS handshake verification using WireMock.
+ */
 @ExtendWith(MockitoExtension.class)
 public class WebhookServiceTest {
 
@@ -60,7 +65,7 @@ public class WebhookServiceTest {
 
 
     @Test
-    @DisplayName("HAPPY PATH: Gerçek DNS Pinning + Gerçek TLS El Sıkışması (System-Level Trust)")
+    @DisplayName("HAPPY PATH: Real DNS Pinning + Real TLS Handshake (System-Level Trust)")
     void shouldDeliverWebhookSuccessfullyWithRealTls() throws Exception {
         String host = "trusted-webhook.com";
         String secureUrl = "https://" + host + ":" + wm.getHttpsPort() + "/callback";
@@ -86,7 +91,7 @@ public class WebhookServiceTest {
     }
 
     @Test
-    @DisplayName("Hata Yönetimi: Kapalı porta bağlantı (Network İzole)")
+    @DisplayName("Error Handling: Connection failure to closed port (Network Isolation)")
     void shouldThrowExceptionOnConnectionFailure() throws Exception {
         String unreachableUrl = "https://trusted-host.com:1/webhook";
         DocumentWebhookEvent event = new DocumentWebhookEvent(UUID.randomUUID(), DocumentStatus.PROCESSED, null);
@@ -102,7 +107,7 @@ public class WebhookServiceTest {
     }
 
     @Test
-    @DisplayName("SSRF Koruması: Yasaklı IP (Localhost) tespiti")
+    @DisplayName("SSRF Protection: Detection and blocking of forbidden IP (Localhost)")
     void shouldBlockUnsafeIp() throws Exception {
         String host = "malicious-host.com";
         String url = "http://" + host + "/hack";

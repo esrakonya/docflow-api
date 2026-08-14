@@ -8,11 +8,15 @@ import org.springframework.mock.web.MockMultipartFile;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Security-focused tests for File Validation.
+ * Validates file size limits and protects against MIME Spoofing by checking
+ * actual file headers (magic bytes) instead of just extensions using Apache Tika.
+ */
 public class FileValidatorTest {
     private final FileValidator fileValidator = new FileValidator();
-
     @Test
-    @DisplayName("Başarı: Gerçek bir PDF dosyası doğrulama testinden geçmeli")
+    @DisplayName("Success: Valid PDF file should pass all validation checks")
     void shouldAcceptRealPdf() {
         byte[] pdfContent = "%PDF-1.5\n%test content".getBytes();
         MockMultipartFile realPdf = new MockMultipartFile(
@@ -21,17 +25,17 @@ public class FileValidatorTest {
         assertDoesNotThrow(() -> fileValidator.validate(realPdf));
     }
     @Test
-    @DisplayName("Güvenlik: Uzantısı PDF olup içi TEXT olan dosya reddedilmeli (MIME Spoofing)")
+    @DisplayName("Security: Fake PDF (text content with .pdf extension) should be rejected (MIME Spoofing)")
     void shouldRejectFakePdf() {
         MockMultipartFile fakePdf = new MockMultipartFile(
-                "file", "hacker.pdf", "application/pdf", "Normal bir yazı.".getBytes()
+                "file", "hacker.pdf", "application/pdf", "A normal sentence.".getBytes()
         );
 
         assertThrows(InvalidRequestException.class, () -> fileValidator.validate(fakePdf));
     }
 
     @Test
-    @DisplayName("Limit: 10MB'dan büyük dosyalar reddedilmeli")
+    @DisplayName("Limit: Files larger than 10MB maximum limit should be rejected")
     void shouldRejectOversizedFile() {
         byte[] largeContent = new byte[11 * 1024 * 1024];
         MockMultipartFile heavyFile = new MockMultipartFile(

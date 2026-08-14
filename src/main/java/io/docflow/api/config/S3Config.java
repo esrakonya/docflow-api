@@ -1,5 +1,6 @@
 package io.docflow.api.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,6 +18,7 @@ import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import java.net.URI;
 
 @Configuration
+@Slf4j
 public class S3Config {
     @Bean
     public S3Client s3Client(
@@ -43,11 +45,12 @@ public class S3Config {
                 s3Client.headBucket(HeadBucketRequest.builder()
                         .bucket(bucketName)
                         .build());
+                log.info("MinIO: Bucket '{}' already exists.", bucketName);
             } catch (NoSuchBucketException e) {
                 s3Client.createBucket(CreateBucketRequest.builder()
                         .bucket(bucketName)
                         .build());
-                System.out.println("MinIO: '" + bucketName + "' kovası otomatik olarak oluşturuldu.");
+                log.info("MinIO: Bucket '{}' was created automatically.", bucketName);
             }
         };
     }

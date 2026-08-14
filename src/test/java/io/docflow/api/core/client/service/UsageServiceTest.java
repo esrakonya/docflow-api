@@ -22,6 +22,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for the Atomic Quota Management system.
+ * Verifies the new PostgreSQL UPSERT logic for monthly resets, atomic increments,
+ * batch upload credit consumption, and race-condition prevention.
+ */
 @ExtendWith(MockitoExtension.class)
 class UsageServiceTest {
     @Mock private UsageRecordRepository usageRecordRepository;
@@ -31,7 +36,7 @@ class UsageServiceTest {
     }
 
     @Test
-    @DisplayName("Atomik UPSERT boş dönerse (kota dolu) QuotaExceededException fırlatmalı")
+    @DisplayName("Should throw QuotaExceededException when atomic UPSERT returns empty (quota full)")
     void shouldThrowExceptionWhenQuotaIsFull() {
         UUID clientId = UUID.randomUUID();
         ApiClientDto clientDto = ApiClientDto.builder().id(clientId).monthlyQuota(100).build();
@@ -47,7 +52,7 @@ class UsageServiceTest {
     }
 
     @Test
-    @DisplayName("Kota müsaitse sayaç atomik olarak artırılmalı ve kalan miktar doğru hesaplanmalı")
+    @DisplayName("Should increment counter atomically and calculate remaining quota correctly when available")
     void shouldIncrementCountWhenQuotaIsAvailable() {
         UUID clientId = UUID.randomUUID();
         ApiClientDto clientDto = ApiClientDto.builder()
@@ -67,7 +72,7 @@ class UsageServiceTest {
     }
 
     @Test
-    @DisplayName("Yeni ay geldiğinde, önceki ay kotası tükenmiş olsa bile istek kabul edilmeli")
+    @DisplayName("Should allow requests in a new month even if previous month quota was exhausted")
     void shouldAllowRequestsAgainInNewMonthEvenIfPreviousMonthWasExhausted() {
         UUID clientId = UUID.randomUUID();
         ApiClientDto clientDto = ApiClientDto.builder()
@@ -84,7 +89,7 @@ class UsageServiceTest {
     }
 
     @Test
-    @DisplayName("Batch yükleme: dosya sayısı kadar kredi TEK seferde düşmeli (bypass yok)")
+    @DisplayName("Batch upload: Exact file count credits should be consumed in a single operation")
     void shouldConsumeExactFileCountForBatchUpload() {
         UUID clientId = UUID.randomUUID();
         ApiClientDto clientDto = ApiClientDto.builder()
@@ -103,7 +108,7 @@ class UsageServiceTest {
     }
 
     @Test
-    @DisplayName("Batch yükleme: talep edilen miktar kotayı aşıyorsa (kısmi kabul yok) reddedilmeli")
+    @DisplayName("Batch upload: Should reject when requested amount exceeds remaining quota")
     void shouldRejectBatchWhenAmountExceedsRemainingQuota() {
         UUID clientId = UUID.randomUUID();
         ApiClientDto clientDto = ApiClientDto.builder()
