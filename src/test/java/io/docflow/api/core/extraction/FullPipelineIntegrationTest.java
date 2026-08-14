@@ -36,6 +36,11 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * End-to-End Integration test for the entire Document Pipeline.
+ * Simulates the complete flow: File Upload -> Outbox Persistence -> Kafka Relay
+ * -> Async AI Processing -> Final Database Status Update.
+ */
 @Slf4j
 @AutoConfigureMockMvc
 @DirtiesContext
@@ -47,7 +52,7 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
     private DocumentExtractionService extractionService;
 
     @Test
-    @DisplayName("Uçtan uca akış: Yükleme -> Kafka -> Worker -> DB kontrolü")
+    @DisplayName("End-to-End Flow: Successful Upload -> Kafka Relay -> Worker Processing -> DB Verification")
     void shouldProcessFullPipelineSuccessfully() throws Exception {
         String apiKey = "pipeline-test-key";
         byte[] pdfContent = "%PDF-1.5\n%abc".getBytes();

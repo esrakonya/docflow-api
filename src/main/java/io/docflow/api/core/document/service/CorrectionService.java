@@ -18,10 +18,6 @@ public class CorrectionService {
 
     private final ExtractedDataRepository repository;
 
-    /**
-     * AI tarafından çıkartılan veriyi admin onayı/düzeltmesiyle günceller.
-     * Optimistic Locking (@Version) sayesinde veri tutarlılığı garanti edilir.
-     */
     @Transactional
     public void correctData(UUID dataId, ExtractionCorrectionRequest request) {
         log.info("Applying manual correction for ExtractedData ID: {}", dataId);

@@ -18,11 +18,11 @@ public class ExtractionValidator {
         List<String> warnings = new ArrayList<>();
 
         if (data.confidence().compareTo(CONFIDENCE_THRESHOLD) < 0) {
-            warnings.add("Düşük güven skoru: " + data.confidence());
+            warnings.add("Low confidence score: " + data.confidence());
         }
 
         if (data.totalAmount() == null) {
-            warnings.add("Fatura toplam tutarı tespit edilemedi.");
+            warnings.add("Total amount could not be detected.");
         } else {
             BigDecimal sumOfItems = data.lineItems().stream()
                     .map(ExtractedInvoiceData.LineItem::lineTotal)
@@ -32,12 +32,12 @@ public class ExtractionValidator {
             BigDecimal calculatedTotal = sumOfItems.add(tax);
 
             if (data.totalAmount().subtract(calculatedTotal).abs().compareTo(new BigDecimal("0.05")) > 0) {
-                warnings.add(String.format("Matematiksel tutarsızlık! Okunan %s, Hesaplanan: %s", data.totalAmount(), calculatedTotal));
+                warnings.add(String.format("Mathematical inconsistency! Extracted: %s, Calculated: %s", data.totalAmount(), calculatedTotal));
             }
         }
 
         if (data.vendorName() == null || data.vendorName().isBlank()) {
-            warnings.add("Satıcı adı bulunamadı.");
+            warnings.add("Vendor name not found.");
         }
 
         return new ValidationResult(warnings.isEmpty(), warnings);

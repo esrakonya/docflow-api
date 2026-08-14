@@ -1,6 +1,7 @@
 package io.docflow.api.web.auth;
 
 import io.docflow.api.core.admin.dto.AdminLoginRequest;
+import io.docflow.api.core.admin.dto.AdminLoginResponse;
 import io.docflow.api.core.admin.service.AdminAuthService;
 import io.docflow.api.infrastructure.security.JwtService;
 import jakarta.validation.Valid;
@@ -22,9 +23,8 @@ public class AuthController {
     private final JwtService jwtService;
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody AdminLoginRequest request) {
-        adminAuthService.authenticate(request);
-        String token = jwtService.generateToken(request.username());
-        return ResponseEntity.ok(Map.of("token", token));
+    public ResponseEntity<AdminLoginResponse> login(@Valid @RequestBody AdminLoginRequest request) {
+        String token = adminAuthService.authenticate(request);
+        return ResponseEntity.ok(new AdminLoginResponse(token));
     }
 }

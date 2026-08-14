@@ -17,6 +17,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Unit tests for ClientService.
+ * Focuses on client lifecycle management, status updates, and ensuring
+ * cache consistency (eviction) when client metadata changes.
+ */
 @ExtendWith(MockitoExtension.class)
 public class ClientServiceTest {
     @Mock private ApiClientRepository apiClientRepository;
@@ -24,7 +29,7 @@ public class ClientServiceTest {
     @InjectMocks private ClientService clientService;
 
     @Test
-    @DisplayName("Müşteri statüsü değiştiğinde Cache anında silinmeli (Evict)")
+    @DisplayName("Should evict cache immediately when client status changes")
     void shouldEvictCacheWhenStatusChanges() {
         UUID clientId = UUID.randomUUID();
         ApiClient client = ApiClient.builder().id(clientId).apiKeyHash("hash123").build();

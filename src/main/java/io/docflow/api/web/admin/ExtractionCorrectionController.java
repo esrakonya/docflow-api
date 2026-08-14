@@ -19,10 +19,6 @@ public class ExtractionCorrectionController {
 
     private final CorrectionService correctionService;
 
-    /**
-     * AI tarafından çıkartılan verileri manuel olarak düzeltir ve onaylar.
-     * Sadece ADMIN yetkisine sahip kullanıcılar erişebilir.
-     */
     @PutMapping("/{id}/correct")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> correctExtraction(

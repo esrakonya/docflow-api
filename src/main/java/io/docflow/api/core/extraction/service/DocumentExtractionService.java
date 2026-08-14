@@ -67,7 +67,7 @@ public class DocumentExtractionService {
             saveToDatabase(documentId, dto, rawResponse);
             return dto;
         } catch (IOException e) {
-            throw new RuntimeException("Prompt dosyası okunamadı!", e);
+            throw new RuntimeException("Could not read prompt template file!", e);
         }
     }
 
@@ -75,7 +75,7 @@ public class DocumentExtractionService {
 
         extractedDataRepository.findByDocumentId(documentId)
                 .ifPresent(oldData -> {
-                    log.info("Eski çıkarım verisi temizleniyor: {}", documentId);
+                    log.info("Clearing old extraction data for document: {}", documentId);
                     extractedDataRepository.delete(oldData);
                     extractedDataRepository.flush();
                 });
@@ -97,10 +97,10 @@ public class DocumentExtractionService {
 
         if (validation.isValid()) {
             documentService.markAsProcessed(documentId, OffsetDateTime.now());
-            log.info("Belge başarıyla işlendi: {}", documentId);
+            log.info("Document processed successfully: {}", documentId);
         } else {
             documentService.markAsNeedReview(documentId);
-            log.warn("Belge inceleme gerektiriyor (NEEDS_REVIEW): {}", documentId);
+            log.warn("Document requires manual review (NEEDS_REVIEW): {}", documentId);
         }
 
     }

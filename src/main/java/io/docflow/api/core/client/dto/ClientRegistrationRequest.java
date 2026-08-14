@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record ClientRegistrationRequest(
-        @NotBlank(message = "Şirket/Hesap adı boş olamaz.")
-        @Size(min = 2, max = 100, message = "İsim 2 ile 100 karakter arasında olmalıdır.")
+        @NotBlank(message = "Company/Account name cannot be empty.")
+        @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters.")
         String name
 ) { }

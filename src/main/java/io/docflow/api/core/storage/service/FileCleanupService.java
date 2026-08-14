@@ -15,7 +15,13 @@ public class FileCleanupService {
 
     @Scheduled(cron = "0 0 3 * * ?")
     public void runScheduledCleanup() {
-        log.info("Scheduled cleanup task started...");
-        storageService.cleanup(30);
+        log.info("Starting scheduled storage cleanup task. Retention period: 30 days");
+
+        try {
+            int deletedFilesCount = storageService.cleanup(30);
+            log.info("Scheduled cleanup completed. Removed {} files/objects.", deletedFilesCount);
+        } catch (Exception e) {
+            log.error("Critical error during scheduled cleanup!", e);
+        }
     }
 }

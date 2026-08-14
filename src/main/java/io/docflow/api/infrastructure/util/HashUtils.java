@@ -42,7 +42,7 @@ public class HashUtils {
             }
             return hexString.toString();
         } catch (Exception e) {
-            throw new RuntimeException("HMAC hesaplama hatası!", e);
+            throw new RuntimeException("HMAC calculation failed!", e);
         }
      }
 }
