@@ -31,7 +31,6 @@ public class DocumentIntegrationTest extends BaseIntegrationTest {
         ApiClient clientA = apiClientRepository.save(ApiClient.builder()
                 .companyName("Client A")
                 .status(ClientStatus.ACTIVE)
-                .remainingQuota(100)
                 .monthlyQuota(100)
                 .planTier("free")
                 .apiKeyHash(HashUtils.sha256(rawKeyA))
@@ -51,7 +50,6 @@ public class DocumentIntegrationTest extends BaseIntegrationTest {
                 .companyName("Client B")
                 .apiKeyHash(HashUtils.sha256("key-b-456"))
                 .status(ClientStatus.ACTIVE)
-                .remainingQuota(100)
                 .build());
 
         Document secretDocB = documentRepository.save(Document.builder()

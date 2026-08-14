@@ -60,7 +60,6 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
                 .companyName("Pipeline Test Co")
                 .apiKeyHash(HashUtils.sha256(apiKey))
                 .status(ClientStatus.ACTIVE)
-                .remainingQuota(100)
                 .planTier("pro").monthlyQuota(1000).build());
 
         when(clientCacheService.getClientByApiKey(apiKey))
@@ -68,7 +67,6 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
                         .id(client.getId())
                         .companyName(client.getCompanyName())
                         .status(ClientStatus.ACTIVE)
-                        .remainingQuota(100)
                         .monthlyQuota(1000)
                         .planTier("pro")
                         .build()));

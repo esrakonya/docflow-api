@@ -22,32 +22,17 @@ public class UsageService {
 
     @Transactional
     public int checkAndReturnRemaining(ApiClientDto clientDto) {
-        int updatedRows = apiClientRepository.decrementRemainingQuota(clientDto.getId());
+        return checkAndReturnRemaining(clientDto, 1);
+    }
 
-        if (updatedRows == 0) {
-            throw new QuotaExceededException("Insufficient quota! All limits have been exceeded, including concurrent requests.");
-        }
-
-        ApiClient clientEntity = apiClientRepository.getReferenceById(clientDto.getId());
-
+    @Transactional
+    public int checkAndReturnRemaining(ApiClientDto clientDto, int amount) {
         String currentMonth = LocalDate.now().toString().substring(0, 7);
 
-        UsageRecord usageRecord =usageRecordRepository.findByClientAndUsageMonth(clientEntity, currentMonth)
-                .orElse(UsageRecord.builder()
-                        .client(clientEntity)
-                        .usageMonth(currentMonth)
-                        .requestCount(0)
-                        .build());
+        int newCount = usageRecordRepository
+                .incrementIfUnderQuota(clientDto.getId(), currentMonth, amount, clientDto.getMonthlyQuota())
+                .orElseThrow(() -> new QuotaExceededException("Quota exceeded for this month"));
 
-        if (usageRecord.getRequestCount() >= clientDto.getMonthlyQuota()) {
-            throw new QuotaExceededException("Quota exceeded for this month");
-        }
-
-        usageRecord.setRequestCount(usageRecord.getRequestCount() + 1);
-        usageRecordRepository.save(usageRecord);
-
-        clientDto.setRemainingQuota(clientDto.getRemainingQuota() - 1);
-
-        return clientDto.getRemainingQuota();
+        return clientDto.getMonthlyQuota() - newCount;
     }
 }

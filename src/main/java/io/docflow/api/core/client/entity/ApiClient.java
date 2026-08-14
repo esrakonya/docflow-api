@@ -25,10 +25,6 @@ public class ApiClient {
     private Integer monthlyQuota;
 
     @Builder.Default
-    @Column(nullable = false)
-    private Integer remainingQuota = 100;
-
-    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ClientStatus status = ClientStatus.ACTIVE;
@@ -38,8 +34,5 @@ public class ApiClient {
     @PrePersist
     protected void onCreate() {
         createdAt = OffsetDateTime.now();
-        if (remainingQuota == null) {
-            remainingQuota = monthlyQuota;
-        }
     }
 }
