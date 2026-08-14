@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,45 +25,96 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UsageServiceTest {
     @Mock private UsageRecordRepository usageRecordRepository;
-    @Mock private ApiClientRepository apiClientRepository;
     @InjectMocks private UsageService usageService;
+    private static String currentMonth() {
+        return LocalDate.now().toString().substring(0, 7);
+    }
 
     @Test
-    @DisplayName("Atomik kota düşümü 0 dönerse QuotaExceededException fırlatmalı")
+    @DisplayName("Atomik UPSERT boş dönerse (kota dolu) QuotaExceededException fırlatmalı")
     void shouldThrowExceptionWhenQuotaIsFull() {
         UUID clientId = UUID.randomUUID();
-        ApiClientDto clientDto = ApiClientDto.builder().id(clientId).build();
+        ApiClientDto clientDto = ApiClientDto.builder().id(clientId).monthlyQuota(100).build();
 
-        when(apiClientRepository.decrementRemainingQuota(clientId)).thenReturn(0);
+        when(usageRecordRepository.incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(1), eq(100)))
+                .thenReturn(Optional.empty());
 
         assertThrows(QuotaExceededException.class, () ->
                 usageService.checkAndReturnRemaining(clientDto));
 
-        verify(apiClientRepository, times(1)).decrementRemainingQuota(any());
-        verify(usageRecordRepository, never()).save(any());
+        verify(usageRecordRepository, times(1))
+                .incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(1), eq(100));
     }
 
     @Test
-    @DisplayName("Kota müsaitse hem aylık kaydı hem de ana kotayı güncellemeli")
+    @DisplayName("Kota müsaitse sayaç atomik olarak artırılmalı ve kalan miktar doğru hesaplanmalı")
     void shouldIncrementCountWhenQuotaIsAvailable() {
         UUID clientId = UUID.randomUUID();
         ApiClientDto clientDto = ApiClientDto.builder()
                 .id(clientId)
                 .monthlyQuota(100)
-                .remainingQuota(10)
                 .build();
 
-        UsageRecord record = UsageRecord.builder().requestCount(5).build();
 
-        when(apiClientRepository.decrementRemainingQuota(clientId)).thenReturn(1);
-
-        when(usageRecordRepository.findByClientAndUsageMonth(any(), any()))
-                .thenReturn(Optional.of(record));
+        when(usageRecordRepository.incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(1), eq(100)))
+                .thenReturn(Optional.of(91));
 
         int remaining = usageService.checkAndReturnRemaining(clientDto);
 
         assertEquals(9, remaining);
-        verify(apiClientRepository, times(1)).decrementRemainingQuota(clientId);
-        verify(usageRecordRepository, times(1)).save(record);
+        verify(usageRecordRepository, times(1))
+                .incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(1), eq(100));
+    }
+
+    @Test
+    @DisplayName("Yeni ay geldiğinde, önceki ay kotası tükenmiş olsa bile istek kabul edilmeli")
+    void shouldAllowRequestsAgainInNewMonthEvenIfPreviousMonthWasExhausted() {
+        UUID clientId = UUID.randomUUID();
+        ApiClientDto clientDto = ApiClientDto.builder()
+                .id(clientId)
+                .monthlyQuota(100)
+                .build();
+
+        when(usageRecordRepository.incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(1), eq(100)))
+                .thenReturn(Optional.of(1));
+
+        int remaining = usageService.checkAndReturnRemaining(clientDto);
+
+        assertEquals(99, remaining);
+    }
+
+    @Test
+    @DisplayName("Batch yükleme: dosya sayısı kadar kredi TEK seferde düşmeli (bypass yok)")
+    void shouldConsumeExactFileCountForBatchUpload() {
+        UUID clientId = UUID.randomUUID();
+        ApiClientDto clientDto = ApiClientDto.builder()
+                .id(clientId)
+                .monthlyQuota(100)
+                .build();
+
+        when(usageRecordRepository.incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(10), eq(100)))
+                .thenReturn(Optional.of(10));
+
+        int remaining = usageService.checkAndReturnRemaining(clientDto, 10);
+
+        assertEquals(90, remaining);
+        verify(usageRecordRepository, times(1))
+                .incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(10), eq(100));
+    }
+
+    @Test
+    @DisplayName("Batch yükleme: talep edilen miktar kotayı aşıyorsa (kısmi kabul yok) reddedilmeli")
+    void shouldRejectBatchWhenAmountExceedsRemainingQuota() {
+        UUID clientId = UUID.randomUUID();
+        ApiClientDto clientDto = ApiClientDto.builder()
+                .id(clientId)
+                .monthlyQuota(100)
+                .build();
+
+        when(usageRecordRepository.incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(60), eq(100)))
+                .thenReturn(Optional.empty());
+
+        assertThrows(QuotaExceededException.class, () ->
+                usageService.checkAndReturnRemaining(clientDto, 60));
     }
 }

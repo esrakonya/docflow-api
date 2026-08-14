@@ -1,0 +1,1 @@
+ALTER TABLE api_clients DROP COLUMN remaining_quota;

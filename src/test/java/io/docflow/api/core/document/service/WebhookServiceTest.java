@@ -35,6 +35,7 @@ public class WebhookServiceTest {
     @RegisterExtension
     static WireMockExtension wm = WireMockExtension.newInstance()
             .options(wireMockConfig()
+                    .httpDisabled(true)
                     .dynamicHttpsPort()
                     .keystorePath("src/test/resources/wiremock-keystore.jks")
                     .keystorePassword("password")

@@ -33,7 +33,6 @@ class RateLimitingIntegrationTest extends BaseIntegrationTest {
                 .companyName("Limit Test Co")
                 .apiKeyHash(HashUtils.sha256(rawKey))
                 .status(ClientStatus.ACTIVE)
-                .remainingQuota(100)
                 .planTier("free")
                 .monthlyQuota(100)
                 .build());
@@ -43,7 +42,6 @@ class RateLimitingIntegrationTest extends BaseIntegrationTest {
                         .id(client.getId())
                         .companyName(client.getCompanyName())
                         .status(ClientStatus.ACTIVE)
-                        .remainingQuota(100)
                         .monthlyQuota(100)
                         .planTier("free")
                         .build()));
