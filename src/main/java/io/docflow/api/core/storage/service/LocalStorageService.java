@@ -1,5 +1,7 @@
 package io.docflow.api.core.storage.service;
 
+import io.docflow.api.infrastructure.exception.InvalidRequestException;
+import io.docflow.api.infrastructure.exception.StorageException;
 import io.docflow.api.infrastructure.util.FileSanitizer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,7 +34,7 @@ public class LocalStorageService implements StorageService {
 
         if (fileName!= null && fileName.contains("..")) {
             log.error("Security Risk: '..' detected in filename! -> {}", fileName);
-            throw new RuntimeException("Invalid file name! Path traversal attempt blocked.");
+            throw new InvalidRequestException("Invalid file name! Path traversal attempt blocked.");
         }
 
         try {
@@ -50,7 +52,7 @@ public class LocalStorageService implements StorageService {
 
         } catch (IOException e) {
             log.error("File storage error!", e);
-            throw new RuntimeException("Could not store file: " + e.getMessage());
+            throw new StorageException("Could not store file securely", e);
         }
     }
 
@@ -60,7 +62,7 @@ public class LocalStorageService implements StorageService {
             return Files.readAllBytes(Paths.get(uploadDir).resolve(key));
         } catch (IOException e) {
             log.error("Could not read file from local storage: {}", key);
-            throw new RuntimeException("File could not be read from local storage!");
+            throw new StorageException("File could not be read from local storage!");
         }
     }
 

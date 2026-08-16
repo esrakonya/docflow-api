@@ -1,6 +1,8 @@
 package io.docflow.api.infrastructure.util;
 
 
+import io.docflow.api.infrastructure.exception.SecurityProcessingException;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -21,7 +23,7 @@ public class HashUtils {
             }
             return hexString.toString();
         } catch (NoSuchAlgorithmException ex) {
-            throw new RuntimeException(ex);
+            throw new SecurityProcessingException("SHA-256 algorithm not found!", ex);
         }
     }
      public static String hmacSha256(String data, String secret) {
@@ -42,7 +44,7 @@ public class HashUtils {
             }
             return hexString.toString();
         } catch (Exception e) {
-            throw new RuntimeException("HMAC calculation failed!", e);
+            throw new SecurityProcessingException("HMAC calculation failed!", e);
         }
      }
 }

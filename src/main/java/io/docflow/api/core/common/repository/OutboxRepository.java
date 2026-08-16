@@ -15,10 +15,17 @@ public interface OutboxRepository extends JpaRepository<OutboxMessage, UUID> {
 
     List<OutboxMessage> findByProcessedFalseOrderByCreatedAtAsc(Pageable pageable);
 
-    @Query(value = "SELECT * FROM outbox_messages WHERE processed = false ORDER BY created_at ASC LIMIT 100", nativeQuery = true)
+    @Query(value = """
+            SELECT * FROM outbox_messages 
+            WHERE processed = false 
+              AND failed = false 
+              AND retry_count < 5 
+            ORDER BY created_at ASC 
+            LIMIT 100
+            """, nativeQuery = true)
     List<OutboxMessage> findTop100PendingMessages();
 
     @Modifying
-    @Query("DELETE FROM OutboxMessage o WHERE o.processed = true AND o.createdAt < :time")
+    @Query("DELETE FROM OutboxMessage o WHERE (o.processed = true OR o.failed = true) AND o.createdAt < :time")
     void purgeOldMessages(@Param("time") LocalDateTime time);
 }
