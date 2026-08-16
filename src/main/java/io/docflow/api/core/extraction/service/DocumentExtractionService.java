@@ -8,6 +8,7 @@ import io.docflow.api.core.extraction.entity.ExtractedData;
 import io.docflow.api.core.extraction.mapper.ExtractionMapper;
 import io.docflow.api.core.extraction.repository.ExtractedDataRepository;
 import io.docflow.api.core.extraction.validator.ExtractionValidator;
+import io.docflow.api.infrastructure.exception.StorageException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -67,7 +68,7 @@ public class DocumentExtractionService {
             saveToDatabase(documentId, dto, rawResponse);
             return dto;
         } catch (IOException e) {
-            throw new RuntimeException("Could not read prompt template file!", e);
+            throw new StorageException("Could not read prompt template file!", e);
         }
     }
 

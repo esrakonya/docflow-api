@@ -1,5 +1,6 @@
 package io.docflow.api.core.storage.service;
 
+import io.docflow.api.infrastructure.exception.StorageException;
 import io.docflow.api.infrastructure.util.FileSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,7 @@ public class S3StorageService implements StorageService {
         String fileName = UUID.randomUUID() + "_" + sanitizedOriginalName;
 
         if (fileName.contains("..")) {
-            throw new RuntimeException("Invalid file name detected!");
+            throw new StorageException("Invalid file name detected!");
         }
 
         try {
@@ -48,7 +49,7 @@ public class S3StorageService implements StorageService {
             return fileName;
         } catch (Exception e) {
             log.error("S3/MinIO upload error for file: {}", fileName, e);
-            throw new RuntimeException("Could not upload file to S3/MinIO!", e);
+            throw new StorageException("Could not upload file to S3/MinIO!", e);
         }
     }
 
@@ -61,7 +62,7 @@ public class S3StorageService implements StorageService {
                     .build()).asByteArray();
         } catch (Exception e) {
             log.error("Could not fetch file from S3/MinIO: {}", key);
-            throw new RuntimeException("File could not be fetched from storage!", e);
+            throw new StorageException("File could not be fetched from storage!", e);
         }
     }
 

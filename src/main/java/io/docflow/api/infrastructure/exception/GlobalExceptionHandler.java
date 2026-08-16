@@ -62,6 +62,27 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", ex.getMessage(), List.of());
     }
 
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<ErrorResponse> handleStorageException(StorageException ex) {
+        log.error("Storage Error: ", ex);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "STORAGE_ERROR",
+                "A problem occurred with file storage system.", List.of(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SecurityProcessingException.class)
+    public ResponseEntity<ErrorResponse> handleSecurityException(SecurityProcessingException ex) {
+        log.error("Security/Hash Error: ",ex);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "SECURITY_ERROR",
+                "Cryptographic operation failed.", List.of());
+    }
+
+    @ExceptionHandler(WebhookDeliveryException.class)
+    public ResponseEntity<ErrorResponse> handleWebhookException(WebhookDeliveryException ex) {
+        log.warn("Webhook Delivery Failed: {}", ex.getMessage());
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, "WEBHOOK_DELIVERY_FAILED",
+                ex.getMessage(), List.of());
+    }
+
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String code, String message, List<String> details) {
         ErrorResponse error = new ErrorResponse(
                 code,

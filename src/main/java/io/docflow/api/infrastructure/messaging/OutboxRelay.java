@@ -24,6 +24,8 @@ public class OutboxRelay {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
+    private static final int MAX_RETRIES = 5;
+
     @Scheduled(fixedDelay = 5000)
     @Transactional
     public void relayMessages() {
@@ -41,21 +43,29 @@ public class OutboxRelay {
                 kafkaTemplate.send(message.getTopic(), event).get(5, TimeUnit.SECONDS);
 
                 message.setProcessed(true);
-                outboxRepository.save(message);
-
+                message.setLastError(null);
                 log.info("Outbox message successfully relayed to Kafka. ID: {}, Topic: {}", message.getId(), message.getTopic());
 
             } catch (Exception e) {
-                log.error("Outbox relay error! ID: {}. Error: {}", message.getId(), e.getMessage());
-            }
-        }
+                int currentRetries = message.getRetryCount() + 1;
+                message.setRetryCount(currentRetries);
+                message.setLastError(e.getMessage());
 
+                if (currentRetries >= MAX_RETRIES) {
+                    message.setFailed(true);
+                    log.error("Message PERMANENTLY FAILED: ID={}. Moved to dead-letter state.", message.getId());
+                } else {
+                    log.warn("Relay attempt {} failed for ID={}: {}", currentRetries, message.getId(), e.getMessage());
+                }
+            }
+            outboxRepository.save(message);
+        }
     }
 
     @Scheduled(cron = "0 0 3 * * *")
     @Transactional
     public void cleanUp() {
         outboxRepository.purgeOldMessages(LocalDateTime.now().minusDays(1));
-        log.info("Old outbox messages purged.");
+        log.info("Outbox cleanup: Old processed and failed messages purged.");
     }
 }
