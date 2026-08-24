@@ -1,5 +1,8 @@
 package io.docflow.api;
 
+import io.docflow.api.core.billing.entity.Plan;
+import io.docflow.api.core.billing.entity.PlanTier;
+import io.docflow.api.core.billing.repository.PlanRepository;
 import io.docflow.api.core.client.repository.ApiClientRepository;
 import io.docflow.api.core.client.repository.UsageRecordRepository;
 import io.docflow.api.core.client.service.ClientCacheService;
@@ -29,6 +32,7 @@ public abstract class BaseIntegrationTest {
     @Autowired protected ApiClientRepository apiClientRepository;
     @Autowired protected DocumentRepository documentRepository;
     @Autowired protected UsageRecordRepository usageRecordRepository;
+    @Autowired protected PlanRepository planRepository;
     @Autowired protected MockMvc mockMvc;
 
 
@@ -38,4 +42,17 @@ public abstract class BaseIntegrationTest {
     @MockitoBean protected RateLimitingService rateLimitingService;
     @MockitoBean protected S3Client s3Client;
     @MockitoBean protected StorageService storageService;
+
+    protected Plan getTestPlan(String planName) {
+        return planRepository.findByName(planName)
+                .orElseGet(() -> planRepository.save(Plan.builder()
+                        .name(planName)
+                        .monthlyQuota(100)
+                        .build()));
+    }
+
+
+    protected Plan getFreePlan() {
+        return getTestPlan(PlanTier.FREE);
+    }
 }

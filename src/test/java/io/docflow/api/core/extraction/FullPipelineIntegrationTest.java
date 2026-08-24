@@ -1,6 +1,7 @@
 package io.docflow.api.core.extraction;
 
 import io.docflow.api.BaseIntegrationTest;
+import io.docflow.api.core.billing.entity.Plan;
 import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.client.entity.ClientStatus;
@@ -58,6 +59,11 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
         byte[] pdfContent = "%PDF-1.5\n%abc".getBytes();
         String fakeStoragePath = "documents/test-invoice.pdf";
 
+        Plan proPlan = planRepository.save(Plan.builder()
+                .name("PRO_PLAN")
+                .monthlyQuota(1000)
+                .build());
+
         when(storageService.store(any())).thenReturn(fakeStoragePath);
         when(storageService.fetch(fakeStoragePath)).thenReturn(pdfContent);
 
@@ -65,7 +71,8 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
                 .companyName("Pipeline Test Co")
                 .apiKeyHash(HashUtils.sha256(apiKey))
                 .status(ClientStatus.ACTIVE)
-                .planTier("pro").monthlyQuota(1000).build());
+                .plan(proPlan)
+                .build());
 
         when(clientCacheService.getClientByApiKey(apiKey))
                 .thenReturn(Optional.of(ApiClientDto.builder()
@@ -73,7 +80,7 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
                         .companyName(client.getCompanyName())
                         .status(ClientStatus.ACTIVE)
                         .monthlyQuota(1000)
-                        .planTier("pro")
+                        .planName("PRO_PLAN")
                         .build()));
 
         doNothing().when(rateLimitingService).checkRateLimit(any());

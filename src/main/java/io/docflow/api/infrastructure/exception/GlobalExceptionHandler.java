@@ -83,6 +83,17 @@ public class GlobalExceptionHandler {
                 ex.getMessage(), List.of());
     }
 
+    @ExceptionHandler(PaymentProcessingException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentException(PaymentProcessingException ex) {
+        log.error("Payment/Billing Error: {}", ex.getMessage());
+        return buildResponse(
+                HttpStatus.PAYMENT_REQUIRED,
+                "PAYMENT_PROCESSING_FAILED",
+                ex.getMessage(),
+                List.of("Verify your subscription or contact billing support.")
+        );
+    }
+
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String code, String message, List<String> details) {
         ErrorResponse error = new ErrorResponse(
                 code,

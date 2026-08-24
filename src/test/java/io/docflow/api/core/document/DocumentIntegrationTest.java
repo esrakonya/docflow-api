@@ -1,6 +1,8 @@
 package io.docflow.api.core.document;
 
 import io.docflow.api.BaseIntegrationTest;
+import io.docflow.api.core.billing.entity.Plan;
+import io.docflow.api.core.billing.entity.PlanTier;
 import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.client.entity.ClientStatus;
@@ -29,13 +31,13 @@ public class DocumentIntegrationTest extends BaseIntegrationTest {
     @Test
     @DisplayName("Should return 404 when Client A attempts to access Client B's document (IDOR protection)")
     void shouldPreventIDORAccess() throws Exception {
+        Plan freePlan = getFreePlan();
         // Create a client A
         String rawKeyA = "key-a-789";
         ApiClient clientA = apiClientRepository.save(ApiClient.builder()
                 .companyName("Client A")
                 .status(ClientStatus.ACTIVE)
-                .monthlyQuota(100)
-                .planTier("free")
+                .plan(freePlan)
                 .apiKeyHash(HashUtils.sha256(rawKeyA))
                 .build());
 
@@ -44,8 +46,8 @@ public class DocumentIntegrationTest extends BaseIntegrationTest {
                         .id(clientA.getId())
                         .companyName(clientA.getCompanyName())
                         .status(ClientStatus.ACTIVE)
-                        .monthlyQuota(100)
-                        .planTier("free")
+                        .monthlyQuota(freePlan.getMonthlyQuota())
+                        .planName(PlanTier.FREE)
                         .build()));
 
         // Create a client B
@@ -53,6 +55,7 @@ public class DocumentIntegrationTest extends BaseIntegrationTest {
                 .companyName("Client B")
                 .apiKeyHash(HashUtils.sha256("key-b-456"))
                 .status(ClientStatus.ACTIVE)
+                .plan(freePlan)
                 .build());
 
         Document secretDocB = documentRepository.save(Document.builder()

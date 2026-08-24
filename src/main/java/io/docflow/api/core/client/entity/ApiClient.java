@@ -1,7 +1,9 @@
 package io.docflow.api.core.client.entity;
 
+import io.docflow.api.core.billing.entity.Plan;
 import jakarta.persistence.*;
 import lombok.*;
+import org.checkerframework.checker.units.qual.C;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -20,9 +22,17 @@ public class ApiClient {
     @Column(nullable = false)
     private String companyName;
 
-    private String planTier;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "plan_id", nullable = false)
+    private Plan plan;
+
+    @Column(name = "stripe_customer_id", unique = true)
+    private String stripeCustomerId;
+
+    @Column(name = "stripe_subscription_id")
+    private String stripeSubscriptionId;
+
     private String webhookSecret;
-    private Integer monthlyQuota;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)

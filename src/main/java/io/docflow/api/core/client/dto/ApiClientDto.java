@@ -15,12 +15,12 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApiClientDto implements Serializable {
-    @Serial private static final long serialVersionUID = 2L;
+    @Serial private static final long serialVersionUID = 3L;
 
     private UUID id;
     private String companyName;
     private String apiKeyHash;
     private ClientStatus status;
     private Integer monthlyQuota;
-    private String planTier;
+    private String planName;
 }
