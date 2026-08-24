@@ -39,11 +39,15 @@ public class RedisClientCacheService implements ClientCacheService {
             log.error("Redis error, falling back to database: {}", e.getMessage());
         }
 
-        return apiClientRepository.findByApiKeyHash(hashedKey)
+        return apiClientRepository.findByApiKeyHashWithPlan(hashedKey)
                 .map(client -> {
                     ApiClientDto dto = mapToDto(client);
 
-                    redisTemplate.opsForValue().set(cacheKey, dto, CACHE_TTL);
+                    try {
+                        redisTemplate.opsForValue().set(cacheKey, dto, CACHE_TTL);
+                    } catch (Exception e) {
+                        log.warn("Failed to write to Redis: {}", e.getMessage());
+                    }
 
                     log.debug("Cache miss. Client loaded from DB and cached: {}", hashedKey);
                     return dto;
@@ -68,8 +72,8 @@ public class RedisClientCacheService implements ClientCacheService {
                 .companyName(entity.getCompanyName())
                 .apiKeyHash(entity.getApiKeyHash())
                 .status(entity.getStatus())
-                .monthlyQuota(entity.getMonthlyQuota())
-                .planTier(entity.getPlanTier())
+                .monthlyQuota(entity.getPlan().getMonthlyQuota())
+                .planName(entity.getPlan().getName())
                 .build();
     }
 }

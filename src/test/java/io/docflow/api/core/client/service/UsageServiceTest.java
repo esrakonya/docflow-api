@@ -39,7 +39,7 @@ class UsageServiceTest {
     @DisplayName("Should throw QuotaExceededException when atomic UPSERT returns empty (quota full)")
     void shouldThrowExceptionWhenQuotaIsFull() {
         UUID clientId = UUID.randomUUID();
-        ApiClientDto clientDto = ApiClientDto.builder().id(clientId).monthlyQuota(100).build();
+        ApiClientDto clientDto = ApiClientDto.builder().id(clientId).monthlyQuota(100).planName("FREE").build();
 
         when(usageRecordRepository.incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(1), eq(100)))
                 .thenReturn(Optional.empty());
@@ -58,6 +58,7 @@ class UsageServiceTest {
         ApiClientDto clientDto = ApiClientDto.builder()
                 .id(clientId)
                 .monthlyQuota(100)
+                .planName("FREE")
                 .build();
 
 
