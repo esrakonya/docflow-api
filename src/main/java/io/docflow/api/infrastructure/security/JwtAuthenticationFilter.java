@@ -55,7 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (MalformedJwtException e) {
             handleException(response, "Invalid token format", HttpStatus.UNAUTHORIZED);
         } catch (SignatureException e) {
-            handleException(response, "Token signature is valid", HttpStatus.UNAUTHORIZED);
+            handleException(response, "Invalid token signature", HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             handleException(response, "Authentication failed", HttpStatus.UNAUTHORIZED);
         }

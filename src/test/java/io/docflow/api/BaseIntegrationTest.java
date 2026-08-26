@@ -48,6 +48,7 @@ public abstract class BaseIntegrationTest {
                 .orElseGet(() -> planRepository.save(Plan.builder()
                         .name(planName)
                         .monthlyQuota(100)
+                        .rateLimitPerMin(10)
                         .build()));
     }
 

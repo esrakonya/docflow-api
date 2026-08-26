@@ -16,8 +16,8 @@ public class AppProperties {
 
     @Getter @Setter
     public static class Security {
-        private int freeTierLimit = 3;
-        private int proTierLimit = 100;
+        private String jwtSecret;
+        private long jwtExpirationMs;
     }
 
     @Getter @Setter
