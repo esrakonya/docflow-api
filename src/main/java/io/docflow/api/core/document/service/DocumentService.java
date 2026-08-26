@@ -13,10 +13,10 @@ import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
 import io.docflow.api.core.document.repository.DocumentRepository;
 import io.docflow.api.core.storage.service.StorageService;
+import io.docflow.api.infrastructure.exception.ResourceNotFoundException;
 import io.docflow.api.infrastructure.util.FileSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -44,12 +44,12 @@ public class DocumentService {
 
     public Document getById(UUID id) {
         return documentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Document", "id" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Document", "id", id));
     }
 
     public Document getByIdWithClient(UUID id) {
         return documentRepository.findByIdWithClient(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Document", "id" + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Document", "id", id));
     }
 
     public Page<Document> findAllByClient(ApiClientDto clientDto, Pageable pageable) {

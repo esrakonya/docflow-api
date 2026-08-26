@@ -17,7 +17,6 @@ import java.time.Duration;
 public class RateLimitingService {
 
     private final StringRedisTemplate redisTemplate;
-    private final AppProperties appProperties;
 
     public void checkRateLimit(ApiClientDto clientDto) {
         String key = "ratelimit:" + clientDto.getApiKeyHash();
@@ -27,9 +26,7 @@ public class RateLimitingService {
             redisTemplate.expire(key, Duration.ofMinutes(1));
         }
 
-        int limit = "pro".equalsIgnoreCase(clientDto.getPlanName())
-                ? appProperties.getSecurity().getProTierLimit()
-                : appProperties.getSecurity().getFreeTierLimit();
+        int limit = clientDto.getRateLimitPerMin();
 
         if (currentCount != null && currentCount > limit) {
             log.warn("Rate limit exceeded for client: {} (Plan: {}, Limit: {})", clientDto.getId(), clientDto.getPlanName(), limit);

@@ -25,6 +25,12 @@ public class AdminUserInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        if ("admin123".equals(adminPassword)) {
+            log.warn("########################################################");
+            log.warn("SECURITY WARNING: DEFAULT ADMIN PASSWORD IS IN USE!");
+            log.warn("Please change 'app.admin.password' in production env.");
+            log.warn("########################################################");
+        }
         if (adminUserRepository.findByUserName(adminUsername).isEmpty()) {
             log.info("No admin user found. Creating initial admin: {}", adminUsername);
             AdminUser admin = AdminUser.builder()

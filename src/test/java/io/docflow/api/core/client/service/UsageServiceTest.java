@@ -2,10 +2,12 @@ package io.docflow.api.core.client.service;
 
 import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
+import io.docflow.api.core.client.entity.ClientStatus;
 import io.docflow.api.core.client.entity.UsageRecord;
 import io.docflow.api.core.client.repository.ApiClientRepository;
 import io.docflow.api.core.client.repository.UsageRecordRepository;
 import io.docflow.api.infrastructure.exception.QuotaExceededException;
+import org.apiguardian.api.API;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,11 +37,22 @@ class UsageServiceTest {
         return LocalDate.now().toString().substring(0, 7);
     }
 
+    private ApiClientDto createTestDto(UUID id, int quota) {
+        return ApiClientDto.builder()
+                .id(id)
+                .companyName("Test Corp")
+                .status(ClientStatus.ACTIVE)
+                .monthlyQuota(quota)
+                .rateLimitPerMin(5)
+                .planName("FREE")
+                .build();
+    }
+
     @Test
     @DisplayName("Should throw QuotaExceededException when atomic UPSERT returns empty (quota full)")
     void shouldThrowExceptionWhenQuotaIsFull() {
         UUID clientId = UUID.randomUUID();
-        ApiClientDto clientDto = ApiClientDto.builder().id(clientId).monthlyQuota(100).planName("FREE").build();
+        ApiClientDto clientDto = createTestDto(clientId, 100);
 
         when(usageRecordRepository.incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(1), eq(100)))
                 .thenReturn(Optional.empty());
@@ -55,11 +68,7 @@ class UsageServiceTest {
     @DisplayName("Should increment counter atomically and calculate remaining quota correctly when available")
     void shouldIncrementCountWhenQuotaIsAvailable() {
         UUID clientId = UUID.randomUUID();
-        ApiClientDto clientDto = ApiClientDto.builder()
-                .id(clientId)
-                .monthlyQuota(100)
-                .planName("FREE")
-                .build();
+        ApiClientDto clientDto = createTestDto(clientId, 100);
 
 
         when(usageRecordRepository.incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(1), eq(100)))
@@ -76,10 +85,7 @@ class UsageServiceTest {
     @DisplayName("Should allow requests in a new month even if previous month quota was exhausted")
     void shouldAllowRequestsAgainInNewMonthEvenIfPreviousMonthWasExhausted() {
         UUID clientId = UUID.randomUUID();
-        ApiClientDto clientDto = ApiClientDto.builder()
-                .id(clientId)
-                .monthlyQuota(100)
-                .build();
+        ApiClientDto clientDto = createTestDto(clientId, 100);
 
         when(usageRecordRepository.incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(1), eq(100)))
                 .thenReturn(Optional.of(1));
@@ -93,10 +99,7 @@ class UsageServiceTest {
     @DisplayName("Batch upload: Exact file count credits should be consumed in a single operation")
     void shouldConsumeExactFileCountForBatchUpload() {
         UUID clientId = UUID.randomUUID();
-        ApiClientDto clientDto = ApiClientDto.builder()
-                .id(clientId)
-                .monthlyQuota(100)
-                .build();
+        ApiClientDto clientDto = createTestDto(clientId, 100);
 
         when(usageRecordRepository.incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(10), eq(100)))
                 .thenReturn(Optional.of(10));
@@ -112,10 +115,7 @@ class UsageServiceTest {
     @DisplayName("Batch upload: Should reject when requested amount exceeds remaining quota")
     void shouldRejectBatchWhenAmountExceedsRemainingQuota() {
         UUID clientId = UUID.randomUUID();
-        ApiClientDto clientDto = ApiClientDto.builder()
-                .id(clientId)
-                .monthlyQuota(100)
-                .build();
+        ApiClientDto clientDto = createTestDto(clientId, 100);
 
         when(usageRecordRepository.incrementIfUnderQuota(eq(clientId), eq(currentMonth()), eq(60), eq(100)))
                 .thenReturn(Optional.empty());

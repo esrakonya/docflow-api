@@ -52,6 +52,7 @@ class RateLimitingIntegrationTest extends BaseIntegrationTest {
                         .status(ClientStatus.ACTIVE)
                         .monthlyQuota(freePlan.getMonthlyQuota())
                         .planName(PlanTier.FREE)
+                        .rateLimitPerMin(freePlan.getRateLimitPerMin())
                         .build()));
 
 

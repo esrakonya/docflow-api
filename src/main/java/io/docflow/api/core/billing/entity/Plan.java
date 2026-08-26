@@ -20,6 +20,9 @@ public class Plan {
     @Column(nullable = false)
     private Integer monthlyQuota;
 
+    @Column(nullable = false)
+    private Integer rateLimitPerMin;
+
     @Column(unique = true)
     private String stripePriceId;
 

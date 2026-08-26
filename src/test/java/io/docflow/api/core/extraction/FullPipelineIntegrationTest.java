@@ -62,6 +62,7 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
         Plan proPlan = planRepository.save(Plan.builder()
                 .name("PRO_PLAN")
                 .monthlyQuota(1000)
+                .rateLimitPerMin(60)
                 .build());
 
         when(storageService.store(any())).thenReturn(fakeStoragePath);
@@ -81,6 +82,7 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
                         .status(ClientStatus.ACTIVE)
                         .monthlyQuota(1000)
                         .planName("PRO_PLAN")
+                        .rateLimitPerMin(60)
                         .build()));
 
         doNothing().when(rateLimitingService).checkRateLimit(any());
