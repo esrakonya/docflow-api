@@ -75,3 +75,9 @@ docflow:
     jwt:
       secret: ${JWT_SECRET}
       expiration-ms: 86400000
+  billing:
+    stripe:
+      secret-key: ${STRIPE_SECRET_KEY}
+      webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+      success-url: ${STRIPE_SUCCESS_URL}
+      cancel-url: ${STRIPE_CANCEL_URL}

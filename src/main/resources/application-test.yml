@@ -32,3 +32,11 @@ management:
   zipkin:
     tracing:
       endpoint: ""
+
+docflow:
+  billing:
+    stripe:
+      secret-key: "sk_test_test_purpose_only"
+      webhook-secret: "whsec_test_purpose_only"
+      success-url: "http://test-server/success"
+      cancel-url: "http://test-server/cancel"
