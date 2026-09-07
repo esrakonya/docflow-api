@@ -13,8 +13,7 @@ import java.util.UUID;
 
 public interface UsageRecordRepository extends JpaRepository<UsageRecord, UUID> {
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<UsageRecord> findByClientAndUsageMonth(ApiClient client, String usageMonth);
+    Optional<UsageRecord> findByClientIdAndUsageMonth(UUID client, String usageMonth);
 
     @Query(value = """
             WITH upsert AS (

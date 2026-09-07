@@ -1,7 +1,8 @@
 package io.docflow.api.core.client.service;
 
+import com.google.genai.ApiClient;
 import io.docflow.api.core.client.dto.ApiClientDto;
-import io.docflow.api.core.client.entity.ApiClient;
+import io.docflow.api.core.client.dto.ClientUsageResponse;
 import io.docflow.api.core.client.entity.UsageRecord;
 import io.docflow.api.core.client.repository.ApiClientRepository;
 import io.docflow.api.core.client.repository.UsageRecordRepository;
@@ -42,5 +43,23 @@ public class UsageService {
                 });
 
         return monthlyQuota - newCount;
+    }
+
+    public ClientUsageResponse getCurrentUsage(ApiClientDto clientDto) {
+        String currentMonth = LocalDate.now().toString().substring(0, 7);
+
+        int used = usageRecordRepository.findByClientIdAndUsageMonth(clientDto.getId(), currentMonth)
+                .map(UsageRecord::getRequestCount)
+                .orElse(0);
+
+        int limit = clientDto.getMonthlyQuota();
+
+        return ClientUsageResponse.builder()
+                .planName(clientDto.getPlanName())
+                .monthlyLimit(limit)
+                .usedCredits(used)
+                .remainingCredits(Math.max(0, limit - used))
+                .rateLimitPerMinute(clientDto.getRateLimitPerMin())
+                .build();
     }
 }
