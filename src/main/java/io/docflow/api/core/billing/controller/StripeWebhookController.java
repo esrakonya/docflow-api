@@ -2,6 +2,8 @@ package io.docflow.api.core.billing.controller;
 
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
+import com.stripe.model.Invoice;
+import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import io.docflow.api.config.StripeProperties;
@@ -34,10 +36,25 @@ public class StripeWebhookController {
 
             log.info("Received Stripe Event: {}", event.getType());
 
-            if ("checkout.session.completed".equals(event.getType())) {
-                Session session = (Session) event.getDataObjectDeserializer().getObject().orElseThrow();
-                billingService.fulfillCheckout(event.getId(), session);
-                log.info("Checkout fulfilled for session: {}", session.getId());
+            switch (event.getType()) {
+                case "checkout.session.completed" -> {
+                    Session session = (Session) event.getDataObjectDeserializer().getObject().orElseThrow();
+                    billingService.fulfillCheckout(event.getId(), session);
+                    log.info("Checkout fulfilled for session: {}", session.getId());
+                }
+                case "customer.subscription.deleted" -> {
+                    Subscription subscription = (Subscription) event.getDataObjectDeserializer().getObject().orElseThrow();
+                    billingService.handleSubscriptionDeleted(event.getId(), subscription);
+                }
+                case "customer.subscription.updated" -> {
+                    Subscription subscription = (Subscription) event.getDataObjectDeserializer().getObject().orElseThrow();
+                    billingService.handleSubscriptionUpdated(event.getId(), subscription);
+                }
+                case "invoice.payment_failed" -> {
+                    Invoice invoice = (Invoice) event.getDataObjectDeserializer().getObject().orElseThrow();
+                    billingService.handlePaymentFailed(invoice);
+                }
+                default -> log.debug("Unhandled Stripe event type: {}", event.getType());
             }
 
             return ResponseEntity.ok("Event Processed");

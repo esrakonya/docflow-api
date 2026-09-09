@@ -4,7 +4,6 @@ import com.stripe.exception.StripeException;
 import io.docflow.api.core.billing.service.BillingService;
 import io.docflow.api.core.client.dto.ApiClientDto;
 import lombok.RequiredArgsConstructor;
-import org.apache.kafka.common.protocol.types.Field;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -29,5 +28,13 @@ public class BillingController {
         String checkoutUrl = billingService.createCheckoutSession(currentClient, targetPlan);
 
         return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
+    }
+
+    @PostMapping("/portal")
+    public ResponseEntity<Map<String, String>> createPortalSession(
+            @AuthenticationPrincipal ApiClientDto currentClient
+    ) throws StripeException {
+        String portalUrl = billingService.createPortalSession(currentClient);
+        return ResponseEntity.ok(Map.of("portalUrl", portalUrl));
     }
 }
