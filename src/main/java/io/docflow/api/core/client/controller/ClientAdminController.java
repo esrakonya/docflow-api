@@ -20,8 +20,10 @@ public class ClientAdminController {
     private final ClientService clientService;
 
     @PostMapping
-    public ClientRegistrationResponse register(@Valid @RequestBody ClientRegistrationRequest request) {
-        return clientService.registerNewClient(request.name());
+    public ResponseEntity<ClientRegistrationResponse> register(@Valid @RequestBody ClientRegistrationRequest request) {
+        System.out.println("!!! CONTROLLER HIT: " + request.name());
+        ClientRegistrationResponse response = clientService.registerNewClient(request.name());
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}/status")

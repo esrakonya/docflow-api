@@ -54,9 +54,18 @@ public class ClientService {
 
         ApiClient saved = apiClientRepository.save(client);
 
-        log.info("Client registered successfully with Plan: {}", PlanTier.FREE);
+        log.info("Client saved to DB with ID: {}", saved.getId());
 
-        return documentMapper.toRegistrationResponse(saved, rawKey);
+        ClientRegistrationResponse response = new ClientRegistrationResponse(
+                saved.getId(),
+                saved.getCompanyName(),
+                rawKey,
+                saved.getWebhookSecret()
+        );
+
+        log.info("FINAL RESPONSE OBJECT: {}", response);
+
+        return response;
     }
 
     @Transactional
