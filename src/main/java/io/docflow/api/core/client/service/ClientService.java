@@ -63,8 +63,6 @@ public class ClientService {
                 saved.getWebhookSecret()
         );
 
-        log.info("FINAL RESPONSE OBJECT: {}", response);
-
         return response;
     }
 

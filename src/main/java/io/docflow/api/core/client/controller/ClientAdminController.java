@@ -21,7 +21,6 @@ public class ClientAdminController {
 
     @PostMapping
     public ResponseEntity<ClientRegistrationResponse> register(@Valid @RequestBody ClientRegistrationRequest request) {
-        System.out.println("!!! CONTROLLER HIT: " + request.name());
         ClientRegistrationResponse response = clientService.registerNewClient(request.name());
         return ResponseEntity.ok(response);
     }
