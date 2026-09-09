@@ -52,13 +52,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (ExpiredJwtException e) {
             handleException(response, "Token has expired", HttpStatus.UNAUTHORIZED);
+            return;
         } catch (MalformedJwtException e) {
             handleException(response, "Invalid token format", HttpStatus.UNAUTHORIZED);
+            return;
         } catch (SignatureException e) {
             handleException(response, "Invalid token signature", HttpStatus.UNAUTHORIZED);
+            return;
         } catch (Exception e) {
             handleException(response, "Authentication failed", HttpStatus.UNAUTHORIZED);
+            return;
         }
+
+        filterChain.doFilter(request, response);
     }
 
     private void handleException(HttpServletResponse response, String message, HttpStatus status) throws IOException {
