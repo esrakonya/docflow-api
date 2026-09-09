@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -92,6 +93,11 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 List.of("Verify your subscription or contact billing support.")
         );
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(Exception ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, "ROUTE_NOT_FOUND", "The requested endpoint does not exist.", List.of());
     }
 
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String code, String message, List<String> details) {
