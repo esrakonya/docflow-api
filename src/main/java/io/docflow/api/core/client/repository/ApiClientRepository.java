@@ -10,10 +10,5 @@ import java.util.UUID;
 
 public interface ApiClientRepository extends JpaRepository<ApiClient, UUID> {
 
-    Optional<ApiClient> findByApiKeyHash(String apiKeyHash);
-
-    @Query("SELECT c FROM ApiClient c JOIN FETCH c.plan WHERE c.apiKeyHash = :apiKeyHash")
-    Optional<ApiClient> findByApiKeyHashWithPlan(@Param("apiKeyHash") String apiKeyHash);
-
     Optional<ApiClient> findByStripeSubscriptionId(String stripeSubscriptionId);
 }

@@ -16,7 +16,7 @@ public class ApiClient {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String apiKeyHash;
 
     @Column(nullable = false)

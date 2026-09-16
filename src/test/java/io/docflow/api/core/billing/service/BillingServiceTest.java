@@ -47,7 +47,6 @@ public class BillingServiceTest {
         ApiClient client = ApiClient.builder()
                 .id(clientId)
                 .companyName("Test Corp")
-                .apiKeyHash("old-hash")
                 .build();
 
         Plan proPlan = Plan.builder().name("PRO").monthlyQuota(1000).build();
@@ -82,7 +81,7 @@ public class BillingServiceTest {
 
         verify(apiClientRepository).save(client);
         verify(eventRepository).save(any(ProcessedStripeEvent.class));
-        verify(clientCacheService).evictCacheByHash("old-hash");
+        verify(clientCacheService).evictAllCacheForClient(clientId);
 
     }
 
@@ -95,6 +94,6 @@ public class BillingServiceTest {
         billingService.fulfillCheckout(eventId, mock(Session.class));
 
         verify(apiClientRepository, never()).findById(any());
-        verify(clientCacheService, never()).evictCacheByHash(any());
+        verify(clientCacheService, never()).evictAllCacheForClient(any());
     }
 }
