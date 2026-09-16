@@ -37,7 +37,7 @@ public class TestcontainersConfiguration {
 
     @Bean
     public GenericContainer<?> minioContainer() {
-        return new GenericContainer<>(DockerImageName.parse("minio/minio"))
+        return new GenericContainer<>(DockerImageName.parse("quay.io/minio/minio:RELEASE.2024-01-16T16-07-38Z"))
                 .withEnv("MINIO_ROOT_USER", "minioadmin")
                 .withEnv("MINIO_ROOT_PASSWORD", "minioadminpassword")
                 .withCommand("server /data")
