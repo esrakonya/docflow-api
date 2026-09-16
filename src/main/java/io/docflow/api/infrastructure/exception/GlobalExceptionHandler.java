@@ -100,6 +100,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, "ROUTE_NOT_FOUND", "The requested endpoint does not exist.", List.of());
     }
 
+    @ExceptionHandler(LastActiveApiKeyException.class)
+    public ResponseEntity<ErrorResponse> handleLastActiveApiKey(LastActiveApiKeyException ex) {
+        return buildResponse(HttpStatus.CONFLICT, "LAST_ACTIVE_KEY", ex.getMessage(), List.of());
+    }
+
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String code, String message, List<String> details) {
         ErrorResponse error = new ErrorResponse(
                 code,

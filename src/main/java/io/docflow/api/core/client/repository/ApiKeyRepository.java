@@ -13,6 +13,10 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, UUID> {
 
     List<ApiKey> findAllByClientIdAndActiveTrue(UUID clientId);
 
+    List<ApiKey> findAllByClientIdOrderByCreatedAtDesc(UUID clientId);
+
+    Optional<ApiKey> findByIdAndClientId(UUID id, UUID clientId);
+
     @Query("SELECT k FROM ApiKey k JOIN FETCH k.client c JOIN FETCH c.plan " +
             "WHERE k.keyHash = :hash AND k.active = true")
     Optional<ApiKey> findActiveKeyWithClientAndPlan(@Param("hash") String hash);
