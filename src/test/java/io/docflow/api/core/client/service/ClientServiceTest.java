@@ -32,13 +32,13 @@ public class ClientServiceTest {
     @DisplayName("Should evict cache immediately when client status changes")
     void shouldEvictCacheWhenStatusChanges() {
         UUID clientId = UUID.randomUUID();
-        ApiClient client = ApiClient.builder().id(clientId).apiKeyHash("hash123").build();
+        ApiClient client = ApiClient.builder().id(clientId).build();
         when(apiClientRepository.findById(clientId)).thenReturn(Optional.of(client));
 
         clientService.updateClientStatus(clientId, ClientStatus.SUSPENDED);
 
         verify(apiClientRepository).save(client);
         assertEquals(ClientStatus.SUSPENDED, client.getStatus());
-        verify(clientCacheService).evictCacheByHash("hash123");
+        verify(clientCacheService).evictAllCacheForClient(clientId);
     }
 }
