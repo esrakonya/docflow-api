@@ -12,6 +12,7 @@ import io.docflow.api.core.client.repository.ApiKeyRepository;
 import io.docflow.api.core.document.mapper.DocumentMapper;
 import io.docflow.api.infrastructure.exception.PaymentProcessingException;
 import io.docflow.api.infrastructure.exception.ResourceNotFoundException;
+import io.docflow.api.infrastructure.util.ApiKeyGenerator;
 import io.docflow.api.infrastructure.util.HashUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +42,7 @@ public class ClientService {
                     return new PaymentProcessingException("System configuration error: Default subscription tier missing.");
                 });
 
-        String rawKey = "invox_live_" + UUID.randomUUID().toString().replace("-", "");
+        String rawKey = ApiKeyGenerator.generateRawKey();
         String hashedkey = HashUtils.sha256(rawKey);
 
         String webhookSecret = UUID.randomUUID().toString().replace("-", "");
