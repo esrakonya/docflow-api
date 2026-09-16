@@ -46,7 +46,7 @@ public class ApiKeyService {
 
         ApiKey saved = apiKeyRepository.save(apiKey);
 
-        log.info("New API key '{}' issued for client {}", saved.getLabel(), client);
+        log.info("New API key '{}' issued for client {}", saved.getLabel(), client.getId());
 
         return new CreateApiKeyResponse(saved.getId(), saved.getLabel(), rawKey, saved.getCreatedAt());
     }
