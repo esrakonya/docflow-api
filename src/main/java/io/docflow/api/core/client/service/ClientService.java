@@ -5,8 +5,10 @@ import io.docflow.api.core.billing.entity.PlanTier;
 import io.docflow.api.core.billing.repository.PlanRepository;
 import io.docflow.api.core.client.dto.ClientRegistrationResponse;
 import io.docflow.api.core.client.entity.ApiClient;
+import io.docflow.api.core.client.entity.ApiKey;
 import io.docflow.api.core.client.entity.ClientStatus;
 import io.docflow.api.core.client.repository.ApiClientRepository;
+import io.docflow.api.core.client.repository.ApiKeyRepository;
 import io.docflow.api.core.document.mapper.DocumentMapper;
 import io.docflow.api.infrastructure.exception.PaymentProcessingException;
 import io.docflow.api.infrastructure.exception.ResourceNotFoundException;
@@ -16,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Service
@@ -25,6 +26,7 @@ import java.util.UUID;
 public class ClientService {
 
     private final ApiClientRepository apiClientRepository;
+    private final ApiKeyRepository apiKeyRepository;
     private final PlanRepository planRepository;
     private final DocumentMapper documentMapper;
     private final ClientCacheService clientCacheService;
@@ -54,7 +56,17 @@ public class ClientService {
 
         ApiClient saved = apiClientRepository.save(client);
 
+        ApiKey apiKey = ApiKey.builder()
+                .client(saved)
+                .keyHash(hashedkey)
+                .label("Default Key")
+                .active(true)
+                .build();
+
+        apiKeyRepository.save(apiKey);
+
         log.info("Client saved to DB with ID: {}", saved.getId());
+
 
         ClientRegistrationResponse response = new ClientRegistrationResponse(
                 saved.getId(),

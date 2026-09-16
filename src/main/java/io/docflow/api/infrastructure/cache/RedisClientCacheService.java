@@ -2,7 +2,9 @@ package io.docflow.api.infrastructure.cache;
 
 import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
+import io.docflow.api.core.client.entity.ApiKey;
 import io.docflow.api.core.client.repository.ApiClientRepository;
+import io.docflow.api.core.client.repository.ApiKeyRepository;
 import io.docflow.api.core.client.service.ClientCacheService;
 import io.docflow.api.infrastructure.util.HashUtils;
 import lombok.RequiredArgsConstructor;
@@ -11,15 +13,17 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class RedisClientCacheService implements ClientCacheService {
 
-    private final ApiClientRepository apiClientRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ApiKeyRepository apiKeyRepository;
 
     private static final String CACHE_KEY_PREFIX = "api_key";
     private static final Duration CACHE_TTL = Duration.ofHours(1);
@@ -39,19 +43,27 @@ public class RedisClientCacheService implements ClientCacheService {
             log.error("Redis error, falling back to database: {}", e.getMessage());
         }
 
-        return apiClientRepository.findByApiKeyHashWithPlan(hashedKey)
-                .map(client -> {
-                    ApiClientDto dto = mapToDto(client);
-
-                    try {
-                        redisTemplate.opsForValue().set(cacheKey, dto, CACHE_TTL);
-                    } catch (Exception e) {
-                        log.warn("Failed to write to Redis: {}", e.getMessage());
+        Optional<ApiKey> validKey = apiKeyRepository.findActiveKeyWithClientAndPlan(hashedKey)
+                .filter(key -> {
+                    if (key.isExpired()) {
+                        log.warn("Rejected expired API key (label: {}, client: {})", key.getLabel(), key.getClient().getId());
+                        return false;
                     }
-
-                    log.debug("Cache miss. Client loaded from DB and cached: {}", hashedKey);
-                    return dto;
+                    return true;
                 });
+
+        return validKey.map(key -> {
+            ApiClientDto dto = mapToDto(key);
+
+            try {
+                redisTemplate.opsForValue().set(cacheKey, dto, CACHE_TTL);
+            } catch (Exception e) {
+                log.warn("Failed to write to Redis: {}", e.getMessage());
+            }
+
+            log.debug("Cache miss. Client loaded from DB and cached: {}", hashedKey);
+            return dto;
+        });
     }
 
     @Override
@@ -66,11 +78,23 @@ public class RedisClientCacheService implements ClientCacheService {
         log.info("Cache evicted for API Key Hash: {}", apiKeyHash);
     }
 
-    private ApiClientDto mapToDto(ApiClient entity) {
+    @Override
+    public void evictAllCacheForClient(UUID clientId) {
+        List<ApiKey> keys = apiKeyRepository.findAllByClientIdAndActiveTrue(clientId);
+
+        for (ApiKey key : keys) {
+            evictCacheByHash(key.getKeyHash());
+        }
+
+        log.info("Evicted cache for all {} active key(s) of client {}", keys.size(), clientId);
+    }
+
+    private ApiClientDto mapToDto(ApiKey apiKey) {
+        ApiClient entity = apiKey.getClient();
         return ApiClientDto.builder()
                 .id(entity.getId())
                 .companyName(entity.getCompanyName())
-                .apiKeyHash(entity.getApiKeyHash())
+                .apiKeyHash(apiKey.getKeyHash())
                 .status(entity.getStatus())
                 .monthlyQuota(entity.getPlan().getMonthlyQuota())
                 .rateLimitPerMin(entity.getPlan().getRateLimitPerMin())

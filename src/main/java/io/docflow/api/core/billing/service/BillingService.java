@@ -84,7 +84,7 @@ public class BillingService {
         client.setStripeSubscriptionId(retrievedSession.getSubscription());
         apiClientRepository.save(client);
 
-        clientCacheService.evictCacheByHash(client.getApiKeyHash());
+        clientCacheService.evictAllCacheForClient(client.getId());
 
         eventRepository.save(ProcessedStripeEvent.builder().eventId(eventId).eventType("checkout.completed").build());
 
@@ -128,7 +128,7 @@ public class BillingService {
         if (!newPlan.getId().equals(client.getPlan().getId())) {
             client.setPlan(newPlan);
             apiClientRepository.save(client);
-            clientCacheService.evictCacheByHash(client.getApiKeyHash());
+            clientCacheService.evictAllCacheForClient(client.getId());
             log.info("Client {} plan synced to {} via subscription.updated", client.getId(), newPlan.getName());
         }
 
@@ -179,7 +179,7 @@ public class BillingService {
         client.setStripeSubscriptionId(null); //keep stripeCustomerId
         apiClientRepository.save(client);
 
-        clientCacheService.evictCacheByHash(client.getApiKeyHash());
+        clientCacheService.evictAllCacheForClient(client.getId());
 
         eventRepository.save(ProcessedStripeEvent.builder().eventId(eventId).eventType(eventType).build());
 
