@@ -48,7 +48,6 @@ public class ClientService {
 
         ApiClient client = ApiClient.builder()
                 .companyName(companyName)
-                .apiKeyHash(hashedkey)
                 .webhookSecret(webhookSecret)
                 .plan(freePlan)
                 .status(ClientStatus.ACTIVE)
@@ -86,7 +85,7 @@ public class ClientService {
         client.setStatus(newStatus);
         apiClientRepository.save(client);
 
-        clientCacheService.evictCacheByHash(client.getApiKeyHash());
+        clientCacheService.evictAllCacheForClient(client.getId());
 
         log.info("Client {} status uploaded to {} and cache cleared.", clientId, newStatus);
     }
