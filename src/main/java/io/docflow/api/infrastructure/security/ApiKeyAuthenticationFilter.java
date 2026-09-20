@@ -1,10 +1,8 @@
 package io.docflow.api.infrastructure.security;
 
-import io.docflow.api.core.client.entity.ApiClient;
+import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ClientStatus;
-import io.docflow.api.core.client.repository.ApiClientRepository;
 import io.docflow.api.core.client.service.ClientCacheService;
-import io.docflow.api.infrastructure.util.HashUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,21 +11,22 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final  long EXPIRY_WARNING_THRESHOLD_DAYS = 7;
 
     private final ClientCacheService clientCacheService;
     @Override
@@ -42,6 +41,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                         log.warn("Access denied for client '{}' with status: {}", clientDto.getCompanyName(), clientDto.getStatus());
                         throw new BadCredentialsException("API Key is " + clientDto.getStatus().name());
                     }
+
+                    addExpiryWarningHeaderIfNeeded(response, clientDto);
 
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             clientDto,
@@ -63,5 +64,18 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void addExpiryWarningHeaderIfNeeded(HttpServletResponse response, ApiClientDto clientDto) {
+        OffsetDateTime expiresAt = clientDto.getExpiresAt();
+        if (expiresAt == null) {
+            return;
+        }
+
+        long daysUntilExpiry = Duration.between(OffsetDateTime.now(), expiresAt).toDays();
+        if (daysUntilExpiry <= EXPIRY_WARNING_THRESHOLD_DAYS) {
+            response.setHeader("X-API-Key-Expires-Soon", "true");
+            response.setHeader("X-API-Key-Expires-At", expiresAt.toString());
+        }
     }
 }

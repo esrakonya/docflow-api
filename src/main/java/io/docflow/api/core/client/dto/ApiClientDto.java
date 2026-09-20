@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Data
@@ -24,4 +25,5 @@ public class ApiClientDto implements Serializable {
     private Integer monthlyQuota;
     private Integer rateLimitPerMin;
     private String planName;
+    private OffsetDateTime expiresAt;
 }
