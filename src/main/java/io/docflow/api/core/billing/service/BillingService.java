@@ -25,6 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+/**
+ * Outbound billing actions triggered by the client: starting a checkout
+ * session to upgrade a plan, or opening the Stripe Customer Portal.
+ * Reconciling what Stripe reports back (webhook events) lives in
+ * {@link StripeEventHandlerService} instead.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j

@@ -8,6 +8,7 @@ import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import io.docflow.api.config.StripeProperties;
 import io.docflow.api.core.billing.service.BillingService;
+import io.docflow.api.core.billing.service.StripeEventHandlerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class StripeWebhookController {
 
-    private final BillingService billingService;
+    private final StripeEventHandlerService stripeEventHandlerService;
     private final StripeProperties stripeProperties;
 
     @PostMapping
@@ -39,20 +40,20 @@ public class StripeWebhookController {
             switch (event.getType()) {
                 case "checkout.session.completed" -> {
                     Session session = (Session) event.getDataObjectDeserializer().getObject().orElseThrow();
-                    billingService.fulfillCheckout(event.getId(), session);
+                    stripeEventHandlerService.fulfillCheckout(event.getId(), session);
                     log.info("Checkout fulfilled for session: {}", session.getId());
                 }
                 case "customer.subscription.deleted" -> {
                     Subscription subscription = (Subscription) event.getDataObjectDeserializer().getObject().orElseThrow();
-                    billingService.handleSubscriptionDeleted(event.getId(), subscription);
+                    stripeEventHandlerService.handleSubscriptionDeleted(event.getId(), subscription);
                 }
                 case "customer.subscription.updated" -> {
                     Subscription subscription = (Subscription) event.getDataObjectDeserializer().getObject().orElseThrow();
-                    billingService.handleSubscriptionUpdated(event.getId(), subscription);
+                    stripeEventHandlerService.handleSubscriptionUpdated(event.getId(), subscription);
                 }
                 case "invoice.payment_failed" -> {
                     Invoice invoice = (Invoice) event.getDataObjectDeserializer().getObject().orElseThrow();
-                    billingService.handlePaymentFailed(invoice);
+                    stripeEventHandlerService.handlePaymentFailed(invoice);
                 }
                 default -> log.debug("Unhandled Stripe event type: {}", event.getType());
             }
