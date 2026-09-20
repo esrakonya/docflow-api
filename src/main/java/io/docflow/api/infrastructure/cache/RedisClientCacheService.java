@@ -99,6 +99,7 @@ public class RedisClientCacheService implements ClientCacheService {
                 .monthlyQuota(entity.getPlan().getMonthlyQuota())
                 .rateLimitPerMin(entity.getPlan().getRateLimitPerMin())
                 .planName(entity.getPlan().getName())
+                .expiresAt(apiKey.getExpiresAt())
                 .build();
     }
 }
