@@ -31,4 +31,8 @@ jobs:
           AI_PROVIDER: anthropic
           GEMINI_API_KEY: dummy
           ANTHROPIC_API_KEY: dummy
+          STRIPE_SECRET_KEY: sk_test_test_purpose_only
+          STRIPE_WEBHOOK_SECRET: whsec_test_purpose_only
+          STRIPE_SUCCESS_URL: http://test-server/payment/success
+          STRIPE_CANCEL_URL: http://test-server/payment/cancel
           SPRING_TESTCONTAINERS_DYNAMIC_PROPERTY_REGISTRY_INJECTION: allow
