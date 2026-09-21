@@ -28,8 +28,24 @@ public class SecurityConfig {
     private final ApiKeyAuthenticationFilter apiKeyFilter;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+
     @Bean
     @Order(1)
+    public SecurityFilterChain dashboardFilterChain(HttpSecurity http) throws Exception {
+        return  http
+                .securityMatchers(matcher -> matcher
+                        .requestMatchers("/dashboard/**"))
+                .csrf(Customizer.withDefaults())
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/dashboard/login", "/dashboard/csrf").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .build();
+    }
+
+    @Bean
+    @Order(2)
     public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         return http
                 .securityMatchers(matcher -> matcher
@@ -42,7 +58,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(2)
+    @Order(3)
     public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
