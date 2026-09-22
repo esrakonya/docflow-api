@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -26,7 +27,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class DashboardAuthController {
 
-    private final ClientCacheService clientCacheService;
+    private final DashboardSessionService dashboardSessionService;
 
     /**
      * Returns the current CSRF token so a non-form client (curl, a future
@@ -43,37 +44,20 @@ public class DashboardAuthController {
         ));
     }
 
-    @PostMapping("/login")
+    @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> login(@Valid @RequestBody DashboardLoginRequest request, HttpServletRequest httpRequest) {
-        Optional<ApiClientDto> clientDtoOpt = clientCacheService.getClientByApiKey(request.apiKey())
-                .filter(dto -> dto.getStatus() == ClientStatus.ACTIVE);
+        Optional<ApiClientDto> clientDto = dashboardSessionService.login(request.apiKey(), httpRequest);
 
-        if (clientDtoOpt.isEmpty()) {
+        if (clientDto.isEmpty()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-
-        ApiClientDto clientDto = clientDtoOpt.get();
-
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                clientDto, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_CLIENT")));
-
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authentication);
-        SecurityContextHolder.setContext(context);
-
-        HttpSession session = httpRequest.getSession(true);
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
 
         return ResponseEntity.ok(Map.of("message", "Login successful"));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest httpRequest) {
-        HttpSession session = httpRequest.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
-        SecurityContextHolder.clearContext();
+        dashboardSessionService.logout(httpRequest);
         return ResponseEntity.noContent().build();
     }
 }
