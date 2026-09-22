@@ -35,3 +35,4 @@ build/
 # AI Document Processing Specific
 /uploads/
 .env
+cookies.txt
