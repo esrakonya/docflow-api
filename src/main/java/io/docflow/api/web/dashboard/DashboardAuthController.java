@@ -4,7 +4,6 @@ import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ClientStatus;
 import io.docflow.api.core.client.service.ClientCacheService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +44,7 @@ public class DashboardAuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Void> login(@Valid @RequestBody DashboardLoginRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<Map<String, String>> login(@Valid @RequestBody DashboardLoginRequest request, HttpServletRequest httpRequest) {
         Optional<ApiClientDto> clientDtoOpt = clientCacheService.getClientByApiKey(request.apiKey())
                 .filter(dto -> dto.getStatus() == ClientStatus.ACTIVE);
 
@@ -65,7 +64,7 @@ public class DashboardAuthController {
         HttpSession session = httpRequest.getSession(true);
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(Map.of("message", "Login successful"));
     }
 
     @PostMapping("/logout")
