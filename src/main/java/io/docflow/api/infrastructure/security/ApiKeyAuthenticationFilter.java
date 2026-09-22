@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.task.TaskExecutionProperties;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -31,35 +33,59 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     private final ClientCacheService clientCacheService;
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String apiKey = request.getHeader("X-API-KEY");
+        if (apiKey == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         if (apiKey != null && !apiKey.isBlank()) {
             try {
+                var clientDtoOpt = clientCacheService.getClientByApiKey(apiKey);
 
-                clientCacheService.getClientByApiKey(apiKey).ifPresent(clientDto -> {
-                    if (clientDto.getStatus() != ClientStatus.ACTIVE) {
-                        log.warn("Access denied for client '{}' with status: {}", clientDto.getCompanyName(), clientDto.getStatus());
-                        throw new BadCredentialsException("API Key is " + clientDto.getStatus().name());
-                    }
+                if (clientDtoOpt.isEmpty()) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    response.getWriter().write("{\"error\": \"Invalid API Key\"}");
+                    return;
+                }
 
-                    addExpiryWarningHeaderIfNeeded(response, clientDto);
+                ApiClientDto clientDto = clientDtoOpt.get();
 
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            clientDto,
-                            null,
-                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_CLIENT"))
-                    );
+                if (clientDto.getStatus() != ClientStatus.ACTIVE) {
+                    log.warn("Access denied for client '{}' with status: {}", clientDto.getCompanyName(), clientDto.getStatus());
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("{\"error\": \"API Key is " + clientDto.getStatus().name() + "\"}");
+                    return;
+                }
 
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                    log.debug("Client authenticated successfully via API Key: {}", clientDto.getCompanyName());
-                });
+                addExpiryWarningHeaderIfNeeded(response, clientDto);
+
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        clientDto,
+                        null,
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_CLIENT"))
+                );
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                log.debug("Client authenticated successfully via API Key: {}", clientDto.getCompanyName());
 
             } catch (BadCredentialsException ex) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                 response.getWriter().write("{\"error\": \"" + ex.getMessage() + "\"}");
                 return;
             } catch (Exception ex) {
-                log.error("Authentication filter error: ", ex);
+                log.error("Authentication filter critical error: ", ex);
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.getWriter().write("{\"error\": \"Internal authentication error\"}");
+                return;
             }
         }
 
@@ -73,7 +99,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         }
 
         long daysUntilExpiry = Duration.between(OffsetDateTime.now(), expiresAt).toDays();
-        if (daysUntilExpiry <= EXPIRY_WARNING_THRESHOLD_DAYS) {
+        if (daysUntilExpiry >= 0 && daysUntilExpiry <= EXPIRY_WARNING_THRESHOLD_DAYS) {
             response.setHeader("X-API-Key-Expires-Soon", "true");
             response.setHeader("X-API-Key-Expires-At", expiresAt.toString());
         }
