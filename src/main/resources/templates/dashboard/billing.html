@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>docFlow - Billing</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #f5f5f7; margin: 0; }
+        header { background: #111; color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        header form { margin: 0; }
+        header button { background: none; border: 1px solid #555; color: #fff; padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer; }
+        nav { max-width: 800px; margin: 1.5rem auto 0; padding: 0 1rem; display: flex; gap: 1.5rem; }
+        nav a { color: #555; text-decoration: none; font-size: 0.9rem; padding-bottom: 0.4rem; border-bottom: 2px solid transparent; }
+        nav a.active { color: #111; font-weight: 600; border-bottom-color: #111; }
+        main { max-width: 800px; margin: 0 auto 2rem; padding: 1.5rem 1rem 0; }
+        h1 { font-size: 1.3rem; }
+        .banner { padding: 0.85rem 1rem; border-radius: 8px; font-size: 0.9rem; margin-bottom: 1.25rem; }
+        .banner.error { background: #fee; color: #900; border: 1px solid #f3b8b8; }
+        .card { background: #fff; border-radius: 10px; padding: 1.25rem 1.5rem; box-shadow: 0 1px 6px rgba(0,0,0,0.06); margin-bottom: 1.5rem; }
+        .card h2 { font-size: 1rem; margin: 0 0 1rem; }
+        .current-plan { display: flex; align-items: center; justify-content: space-between; }
+        .current-plan .name { font-size: 1.5rem; font-weight: 600; }
+        .plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .plan-option { border: 1px solid #eee; border-radius: 10px; padding: 1.1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+        .plan-option .name { font-weight: 600; }
+        .plan-option .quota { color: #777; font-size: 0.85rem; }
+        .plan-option button, .manage-btn { padding: 0.55rem 1rem; background: #111; color: #fff; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; }
+        .manage-btn { background: #fff; color: #111; border: 1px solid #ccc; }
+        .empty { color: #888; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+<header>
+    <span th:text="${companyName}">Company</span>
+    <form th:action="@{/dashboard/logout-page}" method="post">
+        <button type="submit">Sign out</button>
+    </form>
+</header>
+<nav>
+    <a th:href="@{/dashboard}">Usage overview</a>
+    <a th:href="@{/dashboard/keys}">API Keys</a>
+    <a th:href="@{/dashboard/billing}" class="active">Billing</a>
+</nav>
+<main>
+    <h1>Billing</h1>
+
+    <div class="banner error" th:if="${error}" th:text="${error}"></div>
+
+    <div class="card">
+        <h2>Current plan</h2>
+        <div class="current-plan">
+            <span class="name" th:text="${currentPlan}">FREE</span>
+            <form th:if="${hasBillingAccount}" th:action="@{/dashboard/billing/portal}" method="post">
+                <button type="submit" class="manage-btn">Manage my subscription</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Available plans</h2>
+        <p class="empty" th:if="${#lists.isEmpty(upgradeOptions)}">You're already on the highest available plan.</p>
+        <div class="plan-grid" th:unless="${#lists.isEmpty(upgradeOptions)}">
+            <div class="plan-option" th:each="plan : ${upgradeOptions}">
+                <span class="name" th:text="${plan.name}">PRO</span>
+                <span class="quota" th:text="${plan.monthlyQuota} + ' requests / month, ' + ${plan.rateLimitPerMin} + ' req/min'">1000 requests / month</span>
+                <form th:action="@{/dashboard/billing/upgrade}" method="post">
+                    <input type="hidden" name="targetPlan" th:value="${plan.name}">
+                    <button type="submit" th:text="'Upgrade to ' + ${plan.name}">Upgrade to PRO</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>

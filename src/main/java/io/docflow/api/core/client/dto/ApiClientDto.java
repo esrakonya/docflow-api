@@ -16,7 +16,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApiClientDto implements Serializable {
-    @Serial private static final long serialVersionUID = 4L;
+    @Serial private static final long serialVersionUID = 5L;
 
     private UUID id;
     private String companyName;
@@ -26,4 +26,5 @@ public class ApiClientDto implements Serializable {
     private Integer rateLimitPerMin;
     private String planName;
     private OffsetDateTime expiresAt;
+    private String stripeCustomerId;
 }
