@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>docFlow — Payment successful</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #f5f5f7; margin: 0; display: flex; min-height: 100vh; align-items: center; justify-content: center; }
+        .card { background: #fff; border-radius: 12px; padding: 2.5rem; box-shadow: 0 1px 10px rgba(0,0,0,0.08); max-width: 420px; text-align: center; }
+        .icon { width: 48px; height: 48px; border-radius: 50%; background: #eafbea; color: #1a7d1a; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; }
+        h1 { font-size: 1.2rem; margin: 0 0 0.5rem; }
+        p { color: #666; font-size: 0.9rem; line-height: 1.5; }
+        .actions { margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: center; }
+        a.btn { padding: 0.6rem 1.1rem; border-radius: 6px; font-size: 0.9rem; text-decoration: none; }
+        a.btn.primary { background: #111; color: #fff; }
+        a.btn.secondary { background: #fff; color: #111; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="icon">&#10003;</div>
+    <h1>Payment successful</h1>
+    <p>
+        Thanks — your payment went through. Your plan is updated automatically as soon
+        as Stripe confirms the subscription, which is usually instant but can take a
+        few moments to show up on your billing page.
+    </p>
+    <div class="actions">
+        <a class="btn primary" th:href="@{/dashboard/billing}">Go to billing</a>
+        <a class="btn secondary" th:href="@{/dashboard}">Back to dashboard</a>
+    </div>
+</div>
+</body>
+</html>

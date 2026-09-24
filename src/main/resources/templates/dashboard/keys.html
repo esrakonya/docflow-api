@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>docFlow — API Keys</title>
+    <style>
+        body { font-family: system-ui, sans-serif; background: #f5f5f7; margin: 0; }
+        header { background: #111; color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+         header form { margin: 0; }
+        header button { background: none; border: 1px solid #555; color: #fff; padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer; }
+         nav { max-width: 800px; margin: 1.5rem auto 0; padding: 0 1rem; display: flex; gap: 1.5rem; }
+        nav a { color: #555; text-decoration: none; font-size: 0.9rem; padding-bottom: 0.4rem; border-bottom: 2px solid transparent; }
+        nav a.active { color: #111; font-weight: 600; border-bottom-color: #111; }
+         main { max-width: 800px; margin: 0 auto 2rem; padding: 1.5rem 1rem 0; }
+        h1 { font-size: 1.3rem; }
+        .banner { padding: 0.85rem 1rem; border-radius: 8px; font-size: 0.9rem; margin-bottom: 1.25rem; }
+          .banner.success { background: #eafbea; color: #1a7d1a; border: 1px solid #b7e6b7; }
+       .banner.error { background: #fee; color: #900; border: 1px solid #f3b8b8; }
+        .banner.new-key { background: #fff9e6; color: #6b5400; border: 1px solid #f0dd94; }
+         .banner.new-key code { display: block; background: #fff; border: 1px solid #f0dd94; border-radius: 6px; padding: 0.6rem 0.75rem; margin-top: 0.5rem; font-size: 0.9rem; word-break: break-all; user-select: all; }
+      .card { background: #fff; border-radius: 10px; padding: 1.25rem 1.5rem; box-shadow: 0 1px 6px rgba(0,0,0,0.06); margin-bottom: 1.5rem; }
+        .card h2 { font-size: 1rem; margin: 0 0 1rem; }
+        .field-error { color: #c00; font-size: 0.8rem; margin-top: 0.3rem; }
+       .create-form { display: flex; gap: 0.75rem; align-items: flex-start; }
+       .create-form div { flex: 1; }
+        .create-form input[type=text] { width: 100%; padding: 0.55rem 0.7rem; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 0.9rem; }
+         .create-form button { padding: 0.55rem 1.1rem; background: #111; color: #fff; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; white-space: nowrap; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid #eee; }
+       th { color: #777; font-weight: 500; font-size: 0.8rem; text-transform: uppercase; }
+        .badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; }
+        .badge.active { background: #eafbea; color: #1a7d1a; }
+       .badge.revoked { background: #f2f2f2; color: #888; }
+         .revoke-btn { background: none; border: 1px solid #d99; color: #a00; padding: 0.3rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        .empty { color: #888; font-size: 0.9rem; padding: 1rem 0; }
+    </style>
+</head>
+<body>
+<header>
+    <span th:text="${companyName}">Company</span>
+    <form th:action="@{/dashboard/logout-page}" method="post">
+        <button type="submit">Sign out</button>
+    </form>
+</header>
+<nav>
+    <a th:href="@{/dashboard}">Usage overview</a>
+    <a th:href="@{/dashboard/keys}" class="active">API Keys</a>
+    <a th:href="@{/dashboard/billing}">Billing</a>
+</nav>
+<main>
+    <h1>API Keys</h1>
+
+    <div class="banner success" th:if="${success}" th:text="${success}"></div>
+    <div class="banner error" th:if="${error}" th:text="${error}"></div>
+    <div class="banner new-key" th:if="${newKey}">
+        New key <strong th:text="${newKey.label()}">label</strong> created — copy it now, it won't be shown again:
+        <code th:text="${newKey.rawKey()}">docflow_live_...</code>
+    </div>
+
+    <div class="card">
+        <h2>Create a new key</h2>
+        <form class="create-form" th:action="@{/dashboard/keys}" method="post" th:object="${createRequest}">
+            <div>
+                <input type="text" th:field="*{label}" placeholder="e.g. Production server" autocomplete="off">
+                <div class="field-error" th:if="${#fields.hasErrors('label')}" th:errors="*{label}">Label error</div>
+            </div>
+            <button type="submit">Create key</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Existing keys</h2>
+        <p class="empty" th:if="${#lists.isEmpty(keys)}">No API keys yet — create one above.</p>
+        <table th:unless="${#lists.isEmpty(keys)}">
+            <thead>
+            <tr>
+                <th>Label</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="key : ${keys}">
+                <td th:text="${key.label()}">Production server</td>
+                <td>
+                    <span class="badge active" th:if="${key.active()}">Active</span>
+                    <span class="badge revoked" th:unless="${key.active()}">Revoked</span>
+                </td>
+                <td th:text="${#temporals.format(key.createdAt(), 'dd MMM yyyy, HH:mm')}">01 Jan 2026</td>
+                <td>
+                    <form th:if="${key.active()}" th:action="@{/dashboard/keys/{id}/revoke(id=${key.id()})}"
+                          method="post"
+                          onsubmit="return confirm('Revoke this API key? This cannot be undone.');">
+                        <button type="submit" class="revoke-btn">Revoke</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>
