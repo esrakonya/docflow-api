@@ -36,7 +36,6 @@ public class MeControllerIntegrationTest extends BaseIntegrationTest {
 
         ApiClient client = apiClientRepository.save(ApiClient.builder()
                 .companyName("Dashboard Corp")
-                .apiKeyHash(HashUtils.sha256(rawKey))
                 .status(ClientStatus.ACTIVE)
                 .plan(freePlan)
                 .build());
@@ -56,7 +55,6 @@ public class MeControllerIntegrationTest extends BaseIntegrationTest {
                         .monthlyQuota(freePlan.getMonthlyQuota())
                         .planName(PlanTier.FREE)
                         .rateLimitPerMin(freePlan.getRateLimitPerMin())
-                        .apiKeyHash(client.getApiKeyHash())
                         .build()));
 
         mockMvc.perform(get("/api/v1/me/usage")
@@ -78,7 +76,6 @@ public class MeControllerIntegrationTest extends BaseIntegrationTest {
 
         ApiClient client = apiClientRepository.save(ApiClient.builder()
                 .companyName("Fresh Crop")
-                .apiKeyHash(HashUtils.sha256(rawKey))
                 .status(ClientStatus.ACTIVE)
                 .plan(freePlan)
                 .build());

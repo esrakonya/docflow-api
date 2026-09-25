@@ -11,7 +11,6 @@ import io.docflow.api.core.document.service.DocumentService;
 import io.docflow.api.core.extraction.dto.ExtractedInvoiceData;
 import io.docflow.api.core.extraction.service.DocumentExtractionService;
 import io.docflow.api.infrastructure.messaging.OutboxRelay;
-import io.docflow.api.infrastructure.util.HashUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -70,7 +69,6 @@ class FullPipelineIntegrationTest extends BaseIntegrationTest {
 
         ApiClient client = apiClientRepository.save(ApiClient.builder()
                 .companyName("Pipeline Test Co")
-                .apiKeyHash(HashUtils.sha256(apiKey))
                 .status(ClientStatus.ACTIVE)
                 .plan(proPlan)
                 .build());
