@@ -38,7 +38,6 @@ public class DocumentIntegrationTest extends BaseIntegrationTest {
                 .companyName("Client A")
                 .status(ClientStatus.ACTIVE)
                 .plan(freePlan)
-                .apiKeyHash(HashUtils.sha256(rawKeyA))
                 .build());
 
         when(clientCacheService.getClientByApiKey(rawKeyA))
@@ -53,7 +52,6 @@ public class DocumentIntegrationTest extends BaseIntegrationTest {
         // Create a client B
         ApiClient clientB = apiClientRepository.save(ApiClient.builder()
                 .companyName("Client B")
-                .apiKeyHash(HashUtils.sha256("key-b-456"))
                 .status(ClientStatus.ACTIVE)
                 .plan(freePlan)
                 .build());

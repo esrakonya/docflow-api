@@ -3,6 +3,7 @@ package io.docflow.api.infrastructure.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -103,6 +104,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LastActiveApiKeyException.class)
     public ResponseEntity<ErrorResponse> handleLastActiveApiKey(LastActiveApiKeyException ex) {
         return buildResponse(HttpStatus.CONFLICT, "LAST_ACTIVE_KEY", ex.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", ex.getMessage(), List.of());
     }
 
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String code, String message, List<String> details) {

@@ -1,5 +1,7 @@
 package io.docflow.api;
 
+import io.docflow.api.core.admin.entity.AdminUser;
+import io.docflow.api.core.admin.repository.AdminUserRepository;
 import io.docflow.api.core.billing.entity.Plan;
 import io.docflow.api.core.billing.entity.PlanTier;
 import io.docflow.api.core.billing.repository.PlanRepository;
@@ -18,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,6 +37,8 @@ public abstract class BaseIntegrationTest {
     @Autowired protected UsageRecordRepository usageRecordRepository;
     @Autowired protected PlanRepository planRepository;
     @Autowired protected MockMvc mockMvc;
+    @Autowired protected AdminUserRepository adminUserRepository;
+    @Autowired protected PasswordEncoder passwordEncoder;
 
 
     @MockitoBean protected ClientCacheService clientCacheService;
@@ -55,5 +60,15 @@ public abstract class BaseIntegrationTest {
 
     protected Plan getFreePlan() {
         return getTestPlan(PlanTier.FREE);
+    }
+
+    protected void setupAdmin() {
+        if (adminUserRepository.findByUserName("test-admin").isEmpty()) {
+            adminUserRepository.save(AdminUser.builder()
+                    .userName("test-admin")
+                    .password(passwordEncoder.encode("test-password123"))
+                    .role("ADMIN")
+                    .build());
+        }
     }
 }

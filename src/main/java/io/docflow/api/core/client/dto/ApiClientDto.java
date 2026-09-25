@@ -20,7 +20,6 @@ public class ApiClientDto implements Serializable {
 
     private UUID id;
     private String companyName;
-    private String apiKeyHash;
     private ClientStatus status;
     private Integer monthlyQuota;
     private Integer rateLimitPerMin;

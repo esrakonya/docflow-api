@@ -94,7 +94,6 @@ public class RedisClientCacheService implements ClientCacheService {
         return ApiClientDto.builder()
                 .id(entity.getId())
                 .companyName(entity.getCompanyName())
-                .apiKeyHash(apiKey.getKeyHash())
                 .status(entity.getStatus())
                 .monthlyQuota(entity.getPlan().getMonthlyQuota())
                 .rateLimitPerMin(entity.getPlan().getRateLimitPerMin())

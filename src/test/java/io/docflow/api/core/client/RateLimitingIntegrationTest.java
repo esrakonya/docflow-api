@@ -40,7 +40,6 @@ class RateLimitingIntegrationTest extends BaseIntegrationTest {
 
         ApiClient client = apiClientRepository.save(ApiClient.builder()
                 .companyName("Limit Test Corporation")
-                .apiKeyHash(HashUtils.sha256(rawKey))
                 .status(ClientStatus.ACTIVE)
                 .plan(freePlan)
                 .build());

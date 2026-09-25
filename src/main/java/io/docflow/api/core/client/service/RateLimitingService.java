@@ -19,7 +19,7 @@ public class RateLimitingService {
     private final StringRedisTemplate redisTemplate;
 
     public void checkRateLimit(ApiClientDto clientDto) {
-        String key = "ratelimit:" + clientDto.getApiKeyHash();
+        String key = "ratelimit:" + clientDto.getId();
         Long currentCount = redisTemplate.opsForValue().increment(key);
 
         if (currentCount != null && currentCount == 1) {

@@ -84,7 +84,8 @@ public class RedisClientCacheServiceTest {
 
         assertTrue(result.isPresent());
         assertEquals(client.getId(), result.get().getId());
-        assertEquals(hash, result.get().getApiKeyHash());
+        assertEquals("FREE", result.get().getPlanName());
+        assertEquals(100, result.get().getMonthlyQuota());
         verify(valueOperations).set(eq("api_key" + hash), any(ApiClientDto.class), any(Duration.class));
 
     }
