@@ -8,6 +8,11 @@ JWT_SECRET: dGVzdC1zZWNyZXQta2V5LWF0LWxlYXN0LTMyLWJ5dGVzLWxvbmctZm9yLWhtYWMtc2hh
 STORAGE_TYPE: local
 AI_PROVIDER: anthropic
 
+app:
+  admin:
+    username: test-admin
+    password: test-password123
+
 spring:
   data:
     redis:

@@ -285,6 +285,9 @@
 						-Djavax.net.ssl.trustStorePassword=password
 						-Djavax.net.ssl.trustStoreType=JKS
 					</argLine>
+					<environmentVariables>
+						<SPRINGDOTENV_ENABLED>false</SPRINGDOTENV_ENABLED>
+					</environmentVariables>
 				</configuration>
 			</plugin>
 		</plugins>

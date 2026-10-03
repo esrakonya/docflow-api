@@ -24,8 +24,11 @@ import java.util.UUID;
 @ConditionalOnProperty(name = "storage.type", havingValue = "local")
 public class LocalStorageService implements StorageService {
 
-    @Value("${app.upload.dir:./uploads}")
-    private String uploadDir;
+    private final String uploadDir;
+
+    public LocalStorageService(@Value("${app.upload.dir:./uploads}") String uploadDir) {
+        this.uploadDir = uploadDir;
+    }
 
     @Override
     public String store(MultipartFile file) {

@@ -18,15 +18,17 @@ import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 @ConditionalOnProperty(name = "storage.type", havingValue = "minio")
 public class S3StorageService implements StorageService {
 
     private final S3Client s3Client;
+    private final String bucketName;
 
-    @Value("${storage.minio.bucket-name}")
-    private String bucketName;
+    public S3StorageService(S3Client s3Client, @Value("${storage.minio.bucket-name}") String bucketName) {
+        this.s3Client = s3Client;
+        this.bucketName = bucketName;
+    }
 
     @Override
     public String store(MultipartFile file) {

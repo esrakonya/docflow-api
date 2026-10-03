@@ -37,8 +37,6 @@ public abstract class BaseIntegrationTest {
     @Autowired protected UsageRecordRepository usageRecordRepository;
     @Autowired protected PlanRepository planRepository;
     @Autowired protected MockMvc mockMvc;
-    @Autowired protected AdminUserRepository adminUserRepository;
-    @Autowired protected PasswordEncoder passwordEncoder;
 
 
     @MockitoBean protected ClientCacheService clientCacheService;
@@ -60,15 +58,5 @@ public abstract class BaseIntegrationTest {
 
     protected Plan getFreePlan() {
         return getTestPlan(PlanTier.FREE);
-    }
-
-    protected void setupAdmin() {
-        if (adminUserRepository.findByUserName("test-admin").isEmpty()) {
-            adminUserRepository.save(AdminUser.builder()
-                    .userName("test-admin")
-                    .password(passwordEncoder.encode("test-password123"))
-                    .role("ADMIN")
-                    .build());
-        }
     }
 }

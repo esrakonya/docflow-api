@@ -115,6 +115,9 @@ class AuthIntegrationTest {
     @Value("${app.admin.password}")
     private String seededAdminPassword;
 
+    @Autowired
+    private org.springframework.core.env.Environment environment;
+
     private Plan freePlan;
 
     @BeforeEach
@@ -271,7 +274,7 @@ class AuthIntegrationTest {
                 "/api/v1/auth/login",
                 new HttpEntity<>("{\"username\":\"" + seededAdminUsername + "\",\"password\":\"" + seededAdminPassword + "\"}", jsonHeaders()),
                 Map.class);
-        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(loginResponse.getStatusCode()).as("Body was: %s", loginResponse.getBody()).isEqualTo(HttpStatus.OK);
         String token = (String) loginResponse.getBody().get("token");
         assertThat(token).isNotBlank();
 
@@ -279,7 +282,7 @@ class AuthIntegrationTest {
         authHeaders.setBearerAuth(token);
         ResponseEntity<String> registerResponse = restTemplate.postForEntity(
                 "/api/v1/admin/clients", new HttpEntity<>("{\"name\":\"Admin Created Co\"}", authHeaders), String.class);
-        assertThat(registerResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(registerResponse.getStatusCode()).as("Body was: %s", registerResponse.getBody()).isEqualTo(HttpStatus.OK);
         assertThat(registerResponse.getBody()).contains("Admin Created Co");
 
         HttpHeaders garbageAuthHeaders = jsonHeaders();
