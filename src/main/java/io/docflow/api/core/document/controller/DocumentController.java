@@ -3,7 +3,7 @@ package io.docflow.api.core.document.controller;
 import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.client.service.RateLimitingService;
-import io.docflow.api.core.client.service.UsageService;
+import io.docflow.api.core.document.dto.DocumentUploadResult;
 import io.docflow.api.core.document.dto.DocumentUploadedEvent;
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
@@ -37,7 +37,6 @@ import java.util.UUID;
 public class DocumentController {
 
     private final DocumentService documentService;
-    private final UsageService usageService;
     private final RateLimitingService rateLimitingService;
     private final DocumentMapper documentMapper;
     private final FileValidator fileValidator;
@@ -52,13 +51,12 @@ public class DocumentController {
         rateLimitingService.checkRateLimit(currentClient);
         fileValidator.validate(file);
 
-        Document savedDoc = documentService.uploadSingle(file, callbackUrl, currentClient);
-        int remaining = usageService.checkAndReturnRemaining(currentClient);
+        DocumentUploadResult<Document> uploadResult = documentService.uploadSingle(file, callbackUrl, currentClient);
 
         return ResponseEntity.accepted()
                 .header("X-RateLimit-Limit", String.valueOf(currentClient.getMonthlyQuota()))
-                .header("X-RateLimit-Remaining", String.valueOf(remaining))
-                .body(documentMapper.toResponse(savedDoc));
+                .header("X-RateLimit-Remaining", String.valueOf(uploadResult.remainingQuota()))
+                .body(documentMapper.toResponse(uploadResult.upload()));
     }
 
     @PostMapping(value = "/upload/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -71,16 +69,14 @@ public class DocumentController {
         rateLimitingService.checkRateLimit(currentClient);
         files.forEach(fileValidator::validate);
 
-        int remaining = usageService.checkAndReturnRemaining(currentClient, files.size());
-
-        List<Document> savedDocs = documentService.uploadBatch(files, callbackUrl, currentClient);
-        List<DocumentResponse> responses = savedDocs.stream()
+        DocumentUploadResult<List<Document>> uploadResult = documentService.uploadBatch(files, callbackUrl, currentClient);
+        List<DocumentResponse> responses = uploadResult.upload().stream()
                 .map(documentMapper::toResponse)
                 .toList();
 
         return ResponseEntity.accepted()
                 .header("X-RateLimit-Limit", String.valueOf(currentClient.getMonthlyQuota()))
-                .header("X-RateLimit-Remaining", String.valueOf(remaining))
+                .header("X-RateLimit-Remaining", String.valueOf(uploadResult.remainingQuota()))
                 .body(responses);
     }
 
@@ -108,5 +104,4 @@ public class DocumentController {
 
     public record DocumentResponse(UUID id, String status) {}
 }
-
 
