@@ -8,6 +8,7 @@ import io.docflow.api.core.client.repository.ApiClientRepository;
 import io.docflow.api.core.client.service.UsageService;
 import io.docflow.api.core.common.entity.OutboxMessage;
 import io.docflow.api.core.common.repository.OutboxRepository;
+import io.docflow.api.core.document.dto.DocumentUploadResult;
 import io.docflow.api.core.document.dto.DocumentUploadedEvent;
 import io.docflow.api.core.document.entity.Document;
 import io.docflow.api.core.document.entity.DocumentStatus;
@@ -79,37 +80,22 @@ public class DocumentService {
     }
 
     @Transactional
-    public Document uploadSingle(MultipartFile file, String callbackUrl, ApiClientDto clientDto) {
-        usageService.checkAndReturnRemaining(clientDto);
+    public DocumentUploadResult<Document> uploadSingle(MultipartFile file, String callbackUrl, ApiClientDto clientDto) {
+        int remainingQuota = usageService.checkAndReturnRemaining(clientDto);
+        Document savedDoc = storeDocument(file, callbackUrl, clientDto);
 
-        ApiClient clientEntity = apiClientRepository.getReferenceById(clientDto.getId());
-
-        String safeFilename = FileSanitizer.sanitize(file.getOriginalFilename());
-        String storagePath = storageService.store(file);
-
-        Document doc = Document.builder()
-                .originalFilename(safeFilename)
-                .storagePath(storagePath)
-                .status(DocumentStatus.PENDING)
-                .uploadedAt(OffsetDateTime.now())
-                .client(clientEntity)
-                .callbackUrl(callbackUrl)
-                .build();
-        Document savedDoc = documentRepository.save(doc);
-
-        saveToOutbox(savedDoc, storagePath, file.getContentType());
-
-        return savedDoc;
+        return new DocumentUploadResult<>(savedDoc, remainingQuota);
     }
 
     @Transactional
-    public List<Document> uploadBatch(List<MultipartFile> files, String callbackUrl, ApiClientDto clientDto) {
+    public DocumentUploadResult<List<Document>> uploadBatch(List<MultipartFile> files, String callbackUrl, ApiClientDto clientDto) {
+        int remainingQuota = usageService.checkAndReturnRemaining(clientDto, files.size());
         List<Document> savedDocuments = new ArrayList<>();
 
         for (MultipartFile file : files) {
-            savedDocuments.add(uploadSingle(file, callbackUrl, clientDto));
+            savedDocuments.add(storeDocument(file, callbackUrl, clientDto));
         }
-        return savedDocuments;
+        return new DocumentUploadResult<>(savedDocuments, remainingQuota);
     }
 
     @Transactional
@@ -135,5 +121,26 @@ public class DocumentService {
             log.error("Outbox serialization error for document: {}", doc.getId());
             throw new RuntimeException("Event serialization failed", e);
         }
+    }
+
+    private Document storeDocument(MultipartFile file, String callbackUrl, ApiClientDto clientDto) {
+        ApiClient clientEntity = apiClientRepository.getReferenceById(clientDto.getId());
+
+        String safeFilename = FileSanitizer.sanitize(file.getOriginalFilename());
+        String storagePath = storageService.store(file);
+
+        Document doc = Document.builder()
+                .originalFilename(safeFilename)
+                .storagePath(storagePath)
+                .status(DocumentStatus.PENDING)
+                .uploadedAt(OffsetDateTime.now())
+                .client(clientEntity)
+                .callbackUrl(callbackUrl)
+                .build();
+        Document savedDoc = documentRepository.save(doc);
+
+        saveToOutbox(savedDoc, storagePath, file.getContentType());
+
+        return savedDoc;
     }
 }
