@@ -42,7 +42,7 @@ public class BillingServiceTest {
 
         Plan proPlan = Plan.builder().name("PRO").stripePriceId("price_pro_123").build();
         when(planRepository.findByName("PRO")).thenReturn(Optional.of(proPlan));
-
+        when(stripeProperties.isConfigured()).thenReturn(true);
         when(stripeProperties.getSuccessUrl()).thenReturn("https://app.example.com/success");
         when(stripeProperties.getCancelUrl()).thenReturn("https://app.example.com/cancel");
 
@@ -62,6 +62,8 @@ public class BillingServiceTest {
     @DisplayName("createCheckoutSession: rejects an unknown plan name")
     void shouldRejectUnknownPlan() {
         ApiClientDto clientDto = ApiClientDto.builder().id(UUID.randomUUID()).build();
+
+        when(stripeProperties.isConfigured()).thenReturn(true);
         when(planRepository.findByName("GALAXY")).thenReturn(Optional.empty());
 
         assertThrows(PaymentProcessingException.class,
@@ -73,10 +75,33 @@ public class BillingServiceTest {
     void shouldRejectPlanWithoutStripePrice() {
         ApiClientDto clientDto = ApiClientDto.builder().id(UUID.randomUUID()).build();
         Plan freePlan = Plan.builder().name("FREE").stripePriceId(null).build();
+
+        when(stripeProperties.isConfigured()).thenReturn(true);
         when(planRepository.findByName("FREE")).thenReturn(Optional.of(freePlan));
 
         assertThrows(PaymentProcessingException.class,
                 () -> billingService.createCheckoutSession(clientDto, "FREE"));
+    }
+
+    @Test
+    @DisplayName("createCheckoutSession: rejects billing when Stripe is not configured")
+    void shouldRejectCheckoutWhenStripeIsNotConfigured() {
+        UUID clientId = UUID.randomUUID();
+        ApiClientDto clientDto = ApiClientDto.builder().id(clientId).build();
+
+        when(stripeProperties.isConfigured()).thenReturn(false);
+
+        PaymentProcessingException exception = assertThrows(
+                PaymentProcessingException.class,
+                () -> billingService.createCheckoutSession(clientDto, "PRO")
+        );
+
+        assertEquals(
+                "Stripe billing is not configured. Please contact the administrator.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(planRepository);
     }
 
     // ---------- createPortalSession ----------
@@ -92,6 +117,7 @@ public class BillingServiceTest {
                 .stripeCustomerId("cus_stripe_1")
                 .build();
         when(apiClientRepository.findById(clientId)).thenReturn(Optional.of(client));
+        when(stripeProperties.isConfigured()).thenReturn(true);
         when(stripeProperties.getCancelUrl()).thenReturn("https://app.example.com/cancel");
 
         com.stripe.model.billingportal.Session mockPortalSession = mock(com.stripe.model.billingportal.Session.class);
@@ -113,6 +139,7 @@ public class BillingServiceTest {
     void shouldThrowWhenClientNotFound() {
         UUID clientId = UUID.randomUUID();
         ApiClientDto clientDto = ApiClientDto.builder().id(clientId).build();
+        when(stripeProperties.isConfigured()).thenReturn(true);
         when(apiClientRepository.findById(clientId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
@@ -126,10 +153,32 @@ public class BillingServiceTest {
         ApiClientDto clientDto = ApiClientDto.builder().id(clientId).build();
 
         ApiClient client = ApiClient.builder().id(clientId).stripeCustomerId(null).build();
+        when(stripeProperties.isConfigured()).thenReturn(true);
         when(apiClientRepository.findById(clientId)).thenReturn(Optional.of(client));
 
         assertThrows(PaymentProcessingException.class,
                 () -> billingService.createPortalSession(clientDto));
+    }
+
+    @Test
+    @DisplayName("createPortalSession: rejects billing when Stripe is not configured")
+    void shouldRejectPortalWhenStripeIsNotConfigured() {
+        UUID clientId = UUID.randomUUID();
+        ApiClientDto clientDto = ApiClientDto.builder().id(clientId).build();
+
+        when(stripeProperties.isConfigured()).thenReturn(false);
+
+        PaymentProcessingException exception = assertThrows(
+                PaymentProcessingException.class,
+                () -> billingService.createPortalSession(clientDto)
+        );
+
+        assertEquals(
+                "Stripe billing is not configured. Please contact the administrator.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(apiClientRepository);
     }
 
 }

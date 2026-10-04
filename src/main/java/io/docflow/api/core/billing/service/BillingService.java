@@ -6,11 +6,9 @@ import com.stripe.param.checkout.SessionCreateParams;
 import io.docflow.api.config.StripeProperties;
 import io.docflow.api.core.billing.entity.Plan;
 import io.docflow.api.core.billing.repository.PlanRepository;
-import io.docflow.api.core.billing.repository.ProcessedStripeEventRepository;
 import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.entity.ApiClient;
 import io.docflow.api.core.client.repository.ApiClientRepository;
-import io.docflow.api.core.client.service.ClientCacheService;
 import io.docflow.api.infrastructure.exception.PaymentProcessingException;
 import io.docflow.api.infrastructure.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +31,7 @@ public class BillingService {
     private final StripeProperties stripeProperties;
 
     public String createCheckoutSession(ApiClientDto clientDto, String targetPlanName) throws StripeException {
+        requireStripeConfigured();
         Plan plan = planRepository.findByName(targetPlanName)
                 .orElseThrow(() -> new PaymentProcessingException("Plan not found: " + targetPlanName));
 
@@ -56,6 +55,7 @@ public class BillingService {
     }
 
     public String createPortalSession(ApiClientDto clientDto) throws StripeException {
+        requireStripeConfigured();
         ApiClient client = apiClientRepository.findById(clientDto.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Client", "id", clientDto.getId()));
 
@@ -71,5 +71,13 @@ public class BillingService {
         com.stripe.model.billingportal.Session portalSession = com.stripe.model.billingportal.Session.create(params);
 
         return portalSession.getUrl();
+    }
+
+    private void requireStripeConfigured() {
+        if (!stripeProperties.isConfigured()) {
+            throw new PaymentProcessingException(
+                    "Stripe billing is not configured. Please contact the administrator."
+            );
+        }
     }
 }
