@@ -121,7 +121,7 @@ export GEMINI_API_KEY=...
 ./mvnw spring-boot:run
 ```
 
-The application starts on `http://localhost:8080` by default. On first startup it seeds a default admin user (see [Admin Panel](#admin-panel)) and, if `STORAGE_TYPE=minio`, creates the MinIO bucket if it doesn't already exist.
+The application starts on `http://localhost:8080` by default. On first startup it seeds an admin user from the configured `ADMIN_USERNAME` and `ADMIN_PASSWORD` values (see [Admin Panel](#admin-panel)). If `STORAGE_TYPE=minio`, it also creates the MinIO bucket if it doesn't already exist.
 
 ### 4. Verify
 
@@ -142,8 +142,8 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 | `SPRING_DATA_REDIS_HOST` | Yes | — | Redis host |
 | `SPRING_DATA_REDIS_PORT` | Yes | — | Redis port |
 | `JWT_SECRET` | Yes | — | Base64 secret used to sign admin JWTs (at least 32 bytes) |
-| `ADMIN_USERNAME` | No | `admin` | Username seeded for the admin panel / admin API on first startup |
-| `ADMIN_PASSWORD` | No (**but change this in production**) | `admin123` | Password seeded for that admin user |
+| `ADMIN_USERNAME` | Yes | — | Username seeded for the admin panel / admin API on first startup |
+| `ADMIN_PASSWORD` | Yes | — | Password seeded for that admin user |
 | `AI_PROVIDER` | Yes | — | `anthropic` or `google` |
 | `ANTHROPIC_API_KEY` | Yes, if `AI_PROVIDER=anthropic` | — | Anthropic Claude API key |
 | `GEMINI_API_KEY` | Yes, if `AI_PROVIDER=google` | — | Google Gemini API key |
@@ -158,7 +158,7 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 | `STRIPE_CANCEL_URL` | Yes, for billing | — | Where Stripe Checkout redirects on cancellation |
 | `SESSION_COOKIE_SECURE` | No | `true` | Set to `false` only for local HTTP development of the dashboard; must be `true` (or omitted) wherever the app is served over HTTPS |
 
-> 🔒 **Production note:** Change `ADMIN_PASSWORD` from its default. If you run with the default value, the application logs a security warning on startup.
+> 🔒 **Security note:** `ADMIN_USERNAME` and `ADMIN_PASSWORD` must be explicitly configured. The application does not provide a default admin username or password.
 
 See `.env.example` for a ready-to-copy template with all of the above.
 
@@ -323,9 +323,8 @@ Admin access (both the `/admin/**` HTML views and the `/api/v1/admin/**` REST en
 ```bash
 curl -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "admin123"}'
+  -d '{"username": "'$ADMIN_USERNAME'", "password": "'$ADMIN_PASSWORD'"}'
 ```
-(substitute whatever `ADMIN_USERNAME`/`ADMIN_PASSWORD` were actually seeded with — see [Environment Variables](#environment-variables))
 
 Response: `{"token": "<jwt>"}`. Use it as `Authorization: Bearer <jwt>` on subsequent requests.
 
@@ -368,7 +367,7 @@ Coverage includes an end-to-end authentication suite (`AuthIntegrationTest`) tha
 
 This project is under active development. Currently known gaps:
 
-- The default admin user is seeded from `ADMIN_USERNAME`/`ADMIN_PASSWORD` with no forced password change on first login — if you don't override the defaults, the app is running with a well-known password.
+- The initial admin user is seeded from `ADMIN_USERNAME`/`ADMIN_PASSWORD` with no forced password change on first login.
 - `/admin/dashboard` has no browser-friendly login; it only accepts a bearer token, which makes it awkward to actually browse (see [Admin Panel](#admin-panel)).
 - Uploaded files are not scanned for viruses/malware.
 

@@ -19,27 +19,16 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class AdminUserInitializer implements CommandLineRunner {
 
-    private final AdminUserRepository adminUserRepository;
-    private final PasswordEncoder passwordEncoder;
-    private static final String DEFAULT_PASSWORD = "admin123";
-
     private final AdminSeedService adminSeedService;
 
-    @Value("${app.admin.username:admin}")
+    @Value("${app.admin.username}")
     private String adminUsername;
 
-    @Value("${app.admin.password:admin123}")
+    @Value("${app.admin.password}")
     private String adminPassword;
 
     @Override
-    public void run(String... args) throws Exception {
-        if (DEFAULT_PASSWORD.equals(adminPassword)) {
-            log.warn("########################################################");
-            log.warn("SECURITY WARNING: DEFAULT ADMIN PASSWORD IS IN USE!");
-            log.warn("Please change 'app.admin.password' in production env.");
-            log.warn("########################################################");
-        }
-
+    public void run(String... args) {
         AdminSeedService.SeedResult result = adminSeedService.seeAdmin(adminUsername, adminPassword);
         if (result == AdminSeedService.SeedResult.CREATED) {
             log.info("No admin user found. Created initial admin: {}", adminUsername);
