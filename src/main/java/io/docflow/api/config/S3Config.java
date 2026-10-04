@@ -18,6 +18,7 @@ import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import java.net.URI;
 
 @Configuration
+@ConditionalOnProperty(name = "storage.type", havingValue = "minio")
 @Slf4j
 public class S3Config {
     @Bean
@@ -38,7 +39,6 @@ public class S3Config {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "storage.type", havingValue = "minio")
     public CommandLineRunner createBucketIfNotExists(S3Client s3Client, @Value("${storage.minio.bucket-name}") String bucketName) {
         return args -> {
             try {
