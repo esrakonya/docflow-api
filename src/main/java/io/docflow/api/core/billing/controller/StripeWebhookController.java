@@ -7,7 +7,6 @@ import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import io.docflow.api.config.StripeProperties;
-import io.docflow.api.core.billing.service.BillingService;
 import io.docflow.api.core.billing.service.StripeEventHandlerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +27,11 @@ public class StripeWebhookController {
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String sigHeader
     ) {
+        if (!stripeProperties.isConfigured()) {
+            log.warn("Stripe webhook received but Stripe billing is not configured.");
+            return ResponseEntity.status(503).body("Stripe billing is not configured.");
+        }
+
         try {
             Event event = Webhook.constructEvent(
                     payload,
