@@ -51,6 +51,12 @@ public class GlobalExceptionHandler {
                 ex.getMessage(), List.of("Too many requests in a short period."));
     }
 
+    @ExceptionHandler(RateLimitUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitUnavailable(RateLimitUnavailableException ex) {
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, "RATE_LIMIT_UNAVAILABLE",
+                ex.getMessage(), List.of());
+    }
+
     @ExceptionHandler({RuntimeException.class, Exception.class})
     public ResponseEntity<ErrorResponse> handleAllUncaughtErrors(Exception ex) {
         log.error("UNEXPECTED SYSTEM ERROR: ", ex);
