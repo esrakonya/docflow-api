@@ -1,14 +1,11 @@
 package io.docflow.api.core.client.service;
 
-import com.google.genai.ApiClient;
 import io.docflow.api.core.client.dto.ApiClientDto;
 import io.docflow.api.core.client.dto.ClientUsageResponse;
 import io.docflow.api.core.client.entity.UsageRecord;
-import io.docflow.api.core.client.repository.ApiClientRepository;
 import io.docflow.api.core.client.repository.UsageRecordRepository;
 import io.docflow.api.infrastructure.exception.QuotaExceededException;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
