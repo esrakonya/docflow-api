@@ -20,9 +20,9 @@ public class WebhookWorker {
             attempts = "5",
             backoff = @Backoff(delay = 5000, multiplier = 3.0)
     )
-    @KafkaListener(topics = "webhook-events", groupId = "docflow-webhook-group")
+    @KafkaListener(topics = "webhook-events", groupId = "docflow-webhook-group", properties = "spring.json.value.default.type=io.docflow.api.core.document.dto.DocumentWebhookEvent")
     private void handleWebhookEvent(DocumentWebhookEvent event) {
-        Document doc = documentService.getById(event.documentId());
+        Document doc = documentService.getByIdWithClient(event.documentId());
         String secret = doc.getClient().getWebhookSecret();
 
         webhookService.sendCallback(doc.getCallbackUrl(), secret, event);
